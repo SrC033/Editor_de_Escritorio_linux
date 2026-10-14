@@ -1,0 +1,4167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linux Desktop Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+        
+        html, body {
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 15px;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #e94560;
+            margin-bottom: 15px;
+            font-size: 2rem;
+            text-shadow: 0 0 20px rgba(233, 69, 96, 0.3);
+            flex-shrink: 0;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: nowrap;
+            flex-shrink: 0;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+        
+        .tabs::-webkit-scrollbar {
+            height: 3px;
+        }
+        
+        .tabs::-webkit-scrollbar-thumb {
+            background: #e94560;
+            border-radius: 3px;
+        }
+        
+        .tabs::-webkit-scrollbar-track {
+            background: #1a1a2e;
+        }
+        
+        .tab-btn {
+            background: #16213e;
+            border: 1px solid #0f3460;
+            color: #aaa;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            font-size: 13px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        
+        .tab-btn:hover {
+            background: #0f3460;
+            transform: translateY(-2px);
+            color: #fff;
+        }
+        
+        .tab-btn.active {
+            background: #e94560;
+            color: #fff;
+            border-color: #e94560;
+            box-shadow: 0 0 20px rgba(233, 69, 96, 0.3);
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .editor-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+        
+        .controls-panel {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid #0f3460;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        .controls-panel::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .controls-panel::-webkit-scrollbar-track {
+            background: #1a1a2e;
+            border-radius: 3px;
+        }
+        
+        .controls-panel::-webkit-scrollbar-thumb {
+            background: #e94560;
+            border-radius: 3px;
+        }
+        
+        .controls-panel h2 {
+            color: #e94560;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-group {
+            margin-bottom: 12px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 4px;
+            color: #aaa;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .control-group select,
+        .control-group input[type="text"],
+        .control-group input[type="number"] {
+            width: 100%;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #0f3460;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+        
+        .control-group select:focus,
+        .control-group input[type="text"]:focus,
+        .control-group input[type="number"]:focus {
+            border-color: #e94560;
+            outline: none;
+            box-shadow: 0 0 10px rgba(233, 69, 96, 0.2);
+        }
+        
+        .control-group input[type="range"] {
+            width: 100%;
+            padding: 0;
+            height: 5px;
+            background: #0f3460;
+            outline: none;
+            border-radius: 3px;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #e94560;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 0 10px rgba(233, 69, 96, 0.3);
+        }
+        
+        .control-group input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
+        }
+        
+        .control-group input[type="color"] {
+            width: 40px;
+            height: 35px;
+            border-radius: 6px;
+            border: 2px solid #0f3460;
+            cursor: pointer;
+            background: transparent;
+            padding: 2px;
+        }
+        
+        .control-group input[type="file"] {
+            width: 100%;
+            padding: 6px;
+            border-radius: 6px;
+            border: 1px solid #0f3460;
+            background: #1a1a2e;
+            color: #aaa;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        
+        .control-group input[type="file"]::-webkit-file-upload-button {
+            background: #e94560;
+            color: #fff;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.8rem;
+        }
+        
+        .control-group input[type="file"]::-webkit-file-upload-button:hover {
+            background: #c72a4a;
+        }
+        
+        .control-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .control-row .control-group {
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            padding: 6px 10px;
+            background: #1a1a2e;
+            border-radius: 6px;
+            transition: all 0.3s;
+        }
+        
+        .checkbox-group:hover {
+            background: #1f1f3d;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #e94560;
+        }
+        
+        .checkbox-group label {
+            margin-bottom: 0;
+            cursor: pointer;
+            color: #ddd;
+            font-size: 0.85rem;
+        }
+        
+        .app-list {
+            margin-top: 10px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+        
+        .app-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .app-list::-webkit-scrollbar-track {
+            background: #1a1a2e;
+            border-radius: 3px;
+        }
+        
+        .app-list::-webkit-scrollbar-thumb {
+            background: #e94560;
+            border-radius: 3px;
+        }
+        
+        .app-item {
+            background: #1a1a2e;
+            padding: 6px 10px;
+            margin-bottom: 6px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid transparent;
+            transition: all 0.3s;
+            cursor: grab;
+            font-size: 0.85rem;
+        }
+        
+        .app-item:hover {
+            border-color: #0f3460;
+        }
+        
+        .app-item:active {
+            cursor: grabbing;
+        }
+        
+        .app-item button {
+            background: #e94560;
+            border: none;
+            color: #fff;
+            padding: 2px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.8rem;
+        }
+        
+        .app-item button:hover {
+            background: #c72a4a;
+            transform: scale(1.05);
+        }
+        
+        .btn-add {
+            background: #0f3460;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            margin-top: 8px;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+        
+        .btn-add:hover {
+            background: #1a4a7a;
+            transform: translateY(-2px);
+        }
+        
+        .preview-panel {
+            background: #16213e;
+            border-radius: 15px;
+            border: 1px solid #0f3460;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .preview-panel h2 {
+            color: #e94560;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        
+        #desktop-preview {
+            width: 100%;
+            flex: 1;
+            min-height: 0;
+            background: #2c3e50;
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: all 0.5s;
+            cursor: default;
+        }
+        
+        #desktop-preview.wallpaper-loaded {
+            background-size: cover !important;
+            background-position: center !important;
+            background-repeat: no-repeat !important;
+        }
+        
+        /* Panel Superior */
+        #top-panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 32px;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 12px;
+            font-size: 11px;
+            transition: all 0.5s;
+            z-index: 20;
+            backdrop-filter: blur(10px);
+        }
+        
+        #top-panel .panel-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        #top-panel .panel-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .menu-button {
+            cursor: pointer;
+            padding: 3px 10px;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-weight: bold;
+            font-size: 11px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .menu-button:hover {
+            background: rgba(255,255,255,0.15);
+        }
+        
+        .menu-button.active {
+            background: rgba(233, 69, 96, 0.3);
+            border-color: #e94560;
+        }
+        
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 2px 10px;
+            transition: all 0.3s;
+            border: 1px solid transparent;
+        }
+        
+        .search-bar:focus-within {
+            background: rgba(255,255,255,0.2);
+            border-color: #e94560;
+            box-shadow: 0 0 15px rgba(233, 69, 96, 0.2);
+        }
+        
+        .search-bar input {
+            background: transparent;
+            border: none;
+            color: #fff;
+            padding: 3px 6px;
+            outline: none;
+            width: 100px;
+            font-size: 11px;
+        }
+        
+        .search-bar input::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+        
+        .search-bar .search-icon {
+            cursor: pointer;
+            opacity: 0.6;
+            transition: all 0.3s;
+            font-size: 11px;
+        }
+        
+        .search-bar .search-icon:hover {
+            opacity: 1;
+        }
+        
+        .clock {
+            cursor: pointer;
+            padding: 3px 8px;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .clock:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .panel-btn {
+            cursor: pointer;
+            padding: 3px 10px;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-size: 13px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .panel-btn:hover {
+            background: rgba(255,255,255,0.15);
+            transform: scale(1.05);
+        }
+        
+        .panel-btn.power-btn:hover {
+            background: rgba(233, 69, 96, 0.3);
+            border-color: #e94560;
+        }
+        
+        .panel-btn.settings-btn:hover {
+            background: rgba(52, 152, 219, 0.3);
+            border-color: #3498db;
+        }
+        
+        /* Menú desplegable */
+        .dropdown-menu {
+            position: absolute;
+            top: 34px;
+            left: 10px;
+            background: rgba(22, 33, 62, 0.95);
+            border-radius: 8px;
+            border: 1px solid #0f3460;
+            padding: 8px 0;
+            min-width: 200px;
+            z-index: 30;
+            display: none;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            animation: slideDown 0.3s ease;
+        }
+        
+        .dropdown-menu.show {
+            display: block;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .dropdown-menu .menu-category {
+            padding: 4px 12px;
+            font-size: 10px;
+            color: #e94560;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .dropdown-menu .menu-item {
+            padding: 6px 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+        
+        .dropdown-menu .menu-item:hover {
+            background: rgba(233, 69, 96, 0.2);
+        }
+        
+        .dropdown-menu .menu-item .item-icon {
+            font-size: 14px;
+        }
+        
+        .dropdown-menu .menu-divider {
+            height: 1px;
+            background: #0f3460;
+            margin: 4px 12px;
+        }
+        
+        .dropdown-menu .menu-search {
+            padding: 6px 12px;
+        }
+        
+        .dropdown-menu .menu-search input {
+            width: 100%;
+            padding: 4px 10px;
+            border-radius: 5px;
+            border: 1px solid #0f3460;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 11px;
+        }
+        
+        .dropdown-menu .menu-search input:focus {
+            border-color: #e94560;
+            outline: none;
+        }
+        
+        /* Menú de apagado */
+        .power-menu {
+            position: absolute;
+            top: 34px;
+            right: 10px;
+            background: rgba(22, 33, 62, 0.95);
+            border-radius: 8px;
+            border: 1px solid #0f3460;
+            padding: 8px 0;
+            min-width: 160px;
+            z-index: 30;
+            display: none;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            animation: slideDown 0.3s ease;
+        }
+        
+        .power-menu.show {
+            display: block;
+        }
+        
+        .power-menu .power-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+        }
+        
+        .power-menu .power-item:hover {
+            background: rgba(233, 69, 96, 0.2);
+        }
+        
+        .power-menu .power-item .power-icon {
+            font-size: 16px;
+        }
+        
+        .power-menu .power-item.danger:hover {
+            background: rgba(233, 69, 96, 0.3);
+        }
+        
+        /* Panel de configuración - TAMAÑO REDUCIDO */
+        .desktop-settings-panel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(22, 33, 62, 0.98);
+            border-radius: 10px;
+            border: 1px solid #0f3460;
+            padding: 18px 20px;
+            min-width: 300px;
+            max-width: 380px;
+            max-height: 75vh;
+            overflow-y: auto;
+            z-index: 40;
+            display: none;
+            backdrop-filter: blur(30px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+            animation: windowOpen 0.3s ease;
+        }
+        
+        .desktop-settings-panel.show {
+            display: block;
+        }
+        
+        .desktop-settings-panel::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .desktop-settings-panel::-webkit-scrollbar-thumb {
+            background: #e94560;
+            border-radius: 3px;
+        }
+        
+        .desktop-settings-panel::-webkit-scrollbar-track {
+            background: #1a1a2e;
+            border-radius: 3px;
+        }
+        
+        .desktop-settings-panel .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .desktop-settings-panel .settings-header h3 {
+            color: #e94560;
+            font-size: 0.95rem;
+            margin: 0;
+        }
+        
+        .desktop-settings-panel .settings-close-btn {
+            background: #e94560;
+            border: none;
+            color: #fff;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .desktop-settings-panel .settings-close-btn:hover {
+            background: #c72a4a;
+            transform: scale(1.1);
+        }
+        
+        .desktop-settings-panel .setting-section {
+            margin-bottom: 10px;
+            padding: 8px 10px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+        
+        .desktop-settings-panel .setting-section .section-title {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            color: #e94560;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+        
+        .desktop-settings-panel .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.02);
+        }
+        
+        .desktop-settings-panel .setting-row:last-child {
+            border-bottom: none;
+        }
+        
+        .desktop-settings-panel .setting-label {
+            color: #ccc;
+            font-size: 11px;
+            min-width: 70px;
+        }
+        
+        .desktop-settings-panel .setting-control {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .desktop-settings-panel .setting-control input[type="range"] {
+            width: 80px;
+            padding: 0;
+            height: 3px;
+            background: #0f3460;
+            outline: none;
+            border-radius: 3px;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        
+        .desktop-settings-panel .setting-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #e94560;
+            cursor: pointer;
+        }
+        
+        .desktop-settings-panel .setting-control select {
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #0f3460;
+            background: #1a1a2e;
+            color: #fff;
+            font-size: 10px;
+            max-width: 120px;
+        }
+        
+        .desktop-settings-panel .setting-control input[type="color"] {
+            width: 26px;
+            height: 26px;
+            border-radius: 4px;
+            border: 2px solid #0f3460;
+            cursor: pointer;
+            background: transparent;
+            padding: 2px;
+        }
+        
+        .desktop-settings-panel .setting-control input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+            accent-color: #e94560;
+        }
+        
+        .desktop-settings-panel .setting-control .value-display {
+            color: #e94560;
+            min-width: 24px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .desktop-settings-panel .settings-apply {
+            display: block;
+            margin: 12px auto 0;
+            padding: 8px 20px;
+            background: linear-gradient(135deg, #e94560, #c72a4a);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            width: 100%;
+            font-size: 12px;
+        }
+        
+        .desktop-settings-panel .settings-apply:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 20px rgba(233, 69, 96, 0.4);
+        }
+        
+        /* Iconos del escritorio */
+        .desktop-icons {
+            position: absolute;
+            top: 40px;
+            left: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, 75px);
+            gap: 10px;
+            z-index: 5;
+            padding: 8px;
+            min-height: 150px;
+            min-width: 150px;
+        }
+        
+        .desktop-icon {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 10px 5px 6px;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 70px;
+            backdrop-filter: blur(5px);
+            border: 2px solid transparent;
+            position: relative;
+        }
+        
+        .desktop-icon:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: scale(1.05);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        
+        .desktop-icon:active {
+            transform: scale(0.95);
+        }
+        
+        .desktop-icon.dragging {
+            opacity: 0.6;
+            transform: scale(1.1);
+            cursor: grabbing;
+            z-index: 100;
+            border-color: #e94560;
+            box-shadow: 0 5px 25px rgba(233, 69, 96, 0.3);
+        }
+        
+        .desktop-icon .icon-emoji {
+            display: block;
+            font-size: 28px;
+            margin-bottom: 4px;
+            pointer-events: none;
+        }
+        
+        .desktop-icon .icon-label {
+            font-size: 10px;
+            color: #fff;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+            word-wrap: break-word;
+            pointer-events: none;
+        }
+        
+        .desktop-icon .icon-delete {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #e94560;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            font-size: 9px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 2px solid #1a1a2e;
+            transition: all 0.3s;
+        }
+        
+        .desktop-icon:hover .icon-delete {
+            display: flex;
+        }
+        
+        .desktop-icon .icon-delete:hover {
+            transform: scale(1.2);
+            background: #c72a4a;
+        }
+        
+        .desktop-drop-zone {
+            position: absolute;
+            top: 40px;
+            left: 15px;
+            right: 15px;
+            bottom: 70px;
+            border: 2px dashed transparent;
+            border-radius: 8px;
+            transition: all 0.3s;
+            z-index: 4;
+            pointer-events: none;
+        }
+        
+        .desktop-drop-zone.drag-over {
+            border-color: #e94560;
+            background: rgba(233, 69, 96, 0.05);
+            pointer-events: auto;
+        }
+        
+        /* DOCK */
+        #dock {
+            position: absolute;
+            width: 90%;
+            height: 56px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 12px;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            left: 5%;
+            backdrop-filter: blur(20px);
+            z-index: 15;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 0 12px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            flex-wrap: nowrap;
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+            visibility: visible;
+        }
+        
+        #dock.hidden {
+            opacity: 0;
+            transform: translateY(70px);
+            pointer-events: none;
+            visibility: hidden;
+        }
+        
+        #dock::-webkit-scrollbar {
+            height: 3px;
+        }
+        
+        #dock::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+        
+        #dock::-webkit-scrollbar-thumb {
+            background: #e94560;
+            border-radius: 3px;
+        }
+        
+        #dock::-webkit-scrollbar-thumb:hover {
+            background: #c72a4a;
+        }
+        
+        #dock.bottom {
+            bottom: 15px;
+        }
+        
+        #dock.top {
+            top: 35px;
+        }
+        
+        #dock.left {
+            left: 15px;
+            height: 80%;
+            width: 56px;
+            flex-direction: column;
+            top: 10%;
+            padding: 8px 4px;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+        
+        #dock.left::-webkit-scrollbar {
+            width: 3px;
+            height: 0;
+        }
+        
+        #dock.left::-webkit-scrollbar-thumb {
+            background: #e94560;
+            border-radius: 3px;
+        }
+        
+        #dock.right {
+            right: 15px;
+            height: 80%;
+            width: 56px;
+            flex-direction: column;
+            top: 10%;
+            left: auto;
+            padding: 8px 4px;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+        
+        #dock.right::-webkit-scrollbar {
+            width: 3px;
+            height: 0;
+        }
+        
+        #dock.right::-webkit-scrollbar-thumb {
+            background: #e94560;
+            border-radius: 3px;
+        }
+        
+        #dock .dock-divider {
+            width: 1px;
+            height: 30px;
+            background: rgba(255,255,255,0.1);
+            flex-shrink: 0;
+        }
+        
+        #dock.left .dock-divider,
+        #dock.right .dock-divider {
+            width: 30px;
+            height: 1px;
+        }
+        
+        .dock-item {
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            padding: 4px 10px;
+            border-radius: 6px;
+            position: relative;
+            min-width: 35px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        .dock-item:hover {
+            transform: scale(1.15) translateY(-3px);
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .dock-item:active {
+            transform: scale(0.9);
+        }
+        
+        .dock-item.dragging {
+            opacity: 0.5;
+            transform: scale(1.2);
+            cursor: grabbing;
+            z-index: 100;
+            background: rgba(233, 69, 96, 0.3);
+        }
+        
+        .dock-item .dock-delete {
+            position: absolute;
+            top: -3px;
+            right: -3px;
+            background: #e94560;
+            border-radius: 50%;
+            width: 14px;
+            height: 14px;
+            font-size: 7px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 2px solid rgba(0,0,0,0.5);
+        }
+        
+        .dock-item:hover .dock-delete {
+            display: flex;
+        }
+        
+        .dock-item.active {
+            background: rgba(233, 69, 96, 0.2);
+            border-bottom: 2px solid #e94560;
+        }
+        
+        .dock-item .dock-indicator {
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 3px;
+            background: #e94560;
+            border-radius: 2px;
+            display: none;
+        }
+        
+        .dock-item.active .dock-indicator {
+            display: block;
+        }
+        
+        #dock.left .dock-item .dock-indicator,
+        #dock.right .dock-item .dock-indicator {
+            bottom: auto;
+            right: -2px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 8px;
+        }
+        
+        #dock.left .dock-item.active,
+        #dock.right .dock-item.active {
+            border-bottom: none;
+            border-right: 2px solid #e94560;
+        }
+        
+        #dock.left .dock-item .dock-indicator,
+        #dock.right .dock-item .dock-indicator {
+            display: block;
+        }
+        
+        /* Zona de detección para mostrar dock */
+        #dock-show-zone {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 25px;
+            z-index: 14;
+            pointer-events: auto;
+        }
+        
+        /* Ventanas simuladas */
+        .simulated-window {
+            position: absolute;
+            background: rgba(22, 33, 62, 0.95);
+            border-radius: 10px;
+            border: 1px solid #0f3460;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            z-index: 25;
+            animation: windowOpen 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 260px;
+            min-height: 180px;
+            transition: all 0.2s ease;
+        }
+        
+        .simulated-window.snapping {
+            transition: all 0.1s ease !important;
+        }
+        
+        @keyframes windowOpen {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        
+        .simulated-window .window-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 12px;
+            background: rgba(0,0,0,0.3);
+            cursor: move;
+            flex-shrink: 0;
+            min-height: 32px;
+        }
+        
+        .simulated-window .window-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #ddd;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .simulated-window .window-controls {
+            display: flex;
+            gap: 6px;
+        }
+        
+        .simulated-window .window-controls button {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            color: #fff;
+            line-height: 1;
+        }
+        
+        .simulated-window .window-controls .btn-close {
+            background: #e94560;
+        }
+        
+        .simulated-window .window-controls .btn-close:hover {
+            background: #c72a4a;
+            transform: scale(1.15);
+        }
+        
+        .simulated-window .window-controls .btn-minimize {
+            background: #f39c12;
+        }
+        
+        .simulated-window .window-controls .btn-minimize:hover {
+            background: #d68910;
+            transform: scale(1.15);
+        }
+        
+        .simulated-window .window-controls .btn-maximize {
+            background: #2ecc71;
+        }
+        
+        .simulated-window .window-controls .btn-maximize:hover {
+            background: #27ae60;
+            transform: scale(1.15);
+        }
+        
+        .simulated-window .window-body {
+            flex: 1;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            overflow: auto;
+            min-height: 80px;
+        }
+        
+        .simulated-window .window-body .app-icon {
+            font-size: 36px;
+        }
+        
+        .simulated-window .window-body .app-name {
+            font-size: 14px;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .simulated-window .window-body .app-status {
+            font-size: 12px;
+            color: #aaa;
+        }
+        
+        .simulated-window .window-body .app-content {
+            width: 100%;
+            flex: 1;
+            background: rgba(255,255,255,0.05);
+            border-radius: 6px;
+            padding: 12px;
+            color: #aaa;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 50px;
+        }
+        
+        /* Barra de tareas */
+        #taskbar {
+            position: absolute;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            padding: 4px 12px;
+            display: none;
+            gap: 6px;
+            z-index: 12;
+            border: 1px solid rgba(255,255,255,0.05);
+            max-width: 80%;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        #taskbar.show {
+            display: flex;
+        }
+        
+        .taskbar-item {
+            background: rgba(255,255,255,0.05);
+            padding: 3px 10px;
+            border-radius: 5px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+            border: 1px solid transparent;
+        }
+        
+        .taskbar-item:hover {
+            background: rgba(255,255,255,0.15);
+        }
+        
+        .taskbar-item.active {
+            border-color: #e94560;
+            background: rgba(233, 69, 96, 0.2);
+        }
+        
+        .taskbar-item .task-icon {
+            font-size: 12px;
+        }
+        
+        .btn-generate {
+            background: linear-gradient(135deg, #e94560, #c72a4a);
+            color: #fff;
+            border: none;
+            padding: 10px 30px;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            display: block;
+            width: 100%;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            flex-shrink: 0;
+        }
+        
+        .btn-generate:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 25px rgba(233, 69, 96, 0.4);
+        }
+        
+        .btn-generate:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        #notification {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            padding: 12px 25px;
+            border-radius: 8px;
+            color: #fff;
+            display: none;
+            z-index: 1000;
+            animation: slideIn 0.5s ease;
+            max-width: 350px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            font-size: 14px;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .notification-success {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            border-left: 5px solid #1a9c54;
+        }
+        
+        .notification-error {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            border-left: 5px solid #a93226;
+        }
+        
+        .notification-info {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            border-left: 5px solid #1f6fa3;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: #16213e;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid #0f3460;
+            animation: modalIn 0.3s ease;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+        
+        @keyframes modalIn {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .modal-content h3 {
+            color: #e94560;
+            margin-bottom: 8px;
+            font-size: 1.3rem;
+        }
+        
+        .modal-content .modal-icon {
+            font-size: 40px;
+            margin-bottom: 8px;
+        }
+        
+        .modal-content p {
+            color: #aaa;
+            margin-bottom: 15px;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .modal-actions button {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        
+        .modal-actions .btn-primary {
+            background: #e94560;
+            color: #fff;
+        }
+        
+        .modal-actions .btn-primary:hover {
+            background: #c72a4a;
+            transform: scale(1.05);
+        }
+        
+        .modal-actions .btn-secondary {
+            background: #0f3460;
+            color: #fff;
+        }
+        
+        .modal-actions .btn-secondary:hover {
+            background: #1a4a7a;
+            transform: scale(1.05);
+        }
+        
+        .status-bar {
+            margin-top: 10px;
+            padding: 8px;
+            background: #1a1a2e;
+            border-radius: 6px;
+            text-align: center;
+            color: #aaa;
+            font-size: 12px;
+            border: 1px solid #0f3460;
+            flex-shrink: 0;
+        }
+        
+        .status-bar span {
+            color: #e94560;
+            font-weight: bold;
+        }
+        
+        .help-text {
+            color: #666;
+            font-size: 10px;
+            margin-top: 3px;
+            font-style: italic;
+        }
+        
+        .value-display {
+            color: #e94560;
+            font-weight: bold;
+            min-width: 25px;
+            display: inline-block;
+        }
+        
+        @media (max-width: 1024px) {
+            .editor-container {
+                grid-template-columns: 1fr;
+            }
+            
+            #desktop-preview {
+                height: 350px;
+            }
+            
+            .tabs {
+                gap: 5px;
+            }
+            
+            .tab-btn {
+                padding: 6px 12px;
+                font-size: 11px;
+            }
+            
+            .desktop-settings-panel {
+                min-width: 280px;
+                max-width: 340px;
+                padding: 14px 16px;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .controls-panel {
+                padding: 12px;
+            }
+            
+            #desktop-preview {
+                height: 300px;
+            }
+            
+            .search-bar input {
+                width: 70px !important;
+            }
+            
+            .desktop-settings-panel {
+                min-width: 250px;
+                max-width: 290px;
+                padding: 12px 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Linux Desktop Editor</h1>
+        
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('dock')">🖥️ Dock</button>
+            <button class="tab-btn" onclick="showTab('time')">⏰ Fecha/Hora</button>
+            <button class="tab-btn" onclick="showTab('wallpaper')">🖼️ Fondos</button>
+            <button class="tab-btn" onclick="showTab('menu')">📋 Menú</button>
+            <button class="tab-btn" onclick="showTab('panel')">📊 Paneles</button>
+            <button class="tab-btn" onclick="showTab('icons')">📁 Iconos</button>
+            <button class="tab-btn" onclick="showTab('effects')">✨ Efectos</button>
+            <button class="tab-btn" onclick="showTab('taskbar')">📌 Barra Tareas</button>
+        </div>
+        
+        <div class="editor-container">
+            <div class="controls-panel">
+                <!-- Tab: Dock -->
+                <div id="tab-dock" class="tab-content active">
+                    <h2>🖥️ Configuración del Dock</h2>
+                    
+                    <div class="control-group">
+                        <label>Posición del Dock</label>
+                        <select id="dock-position" onchange="updatePreview()">
+                            <option value="bottom">⬇️ Abajo</option>
+                            <option value="top">⬆️ Arriba</option>
+                            <option value="left">⬅️ Izquierda</option>
+                            <option value="right">➡️ Derecha</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Tema del Dock</label>
+                        <select id="dock-theme" onchange="updatePreview()">
+                            <option value="dark">🌙 Oscuro</option>
+                            <option value="light">☀️ Claro</option>
+                            <option value="transparent">🔲 Transparente</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Tamaño: <span class="value-display" id="dock-size-label">48</span>px</label>
+                        <input type="range" id="dock-size" min="24" max="72" value="48" 
+                               oninput="document.getElementById('dock-size-label').textContent=this.value; updatePreview()">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Transparencia: <span class="value-display" id="transparency-label">80</span>%</label>
+                        <input type="range" id="transparency" min="10" max="100" value="80" 
+                               oninput="document.getElementById('transparency-label').textContent=this.value; updatePreview()">
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="auto-hide" checked onchange="updatePreview()">
+                        <label for="auto-hide">🔒 Auto-ocultar dock</label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="hide-on-app-launch" checked onchange="updatePreview()">
+                        <label for="hide-on-app-launch">🚀 Ocultar al abrir aplicación</label>
+                    </div>
+                    
+                    <div class="app-list">
+                        <h3 style="color:#aaa;font-size:0.85rem;margin-bottom:8px;">📱 Aplicaciones en el Dock</h3>
+                        <div id="app-list-container">
+                            <div class="app-item" data-app="terminal" draggable="true">
+                                <span>📁 Terminal</span>
+                                <button onclick="removeApp('terminal')">✕</button>
+                            </div>
+                            <div class="app-item" data-app="firefox" draggable="true">
+                                <span>🌐 Firefox</span>
+                                <button onclick="removeApp('firefox')">✕</button>
+                            </div>
+                            <div class="app-item" data-app="gedit" draggable="true">
+                                <span>✏️ Gedit</span>
+                                <button onclick="removeApp('gedit')">✕</button>
+                            </div>
+                        </div>
+                        <button class="btn-add" onclick="addApp()">➕ Agregar Aplicación</button>
+                    </div>
+                </div>
+                
+                <!-- Tab: Fecha/Hora -->
+                <div id="tab-time" class="tab-content">
+                    <h2>⏰ Configuración de Fecha y Hora</h2>
+                    
+                    <div class="control-group">
+                        <label>Formato de Fecha</label>
+                        <select id="date-format" onchange="updatePreview()">
+                            <option value="%d/%m/%Y">DD/MM/YYYY</option>
+                            <option value="%m/%d/%Y">MM/DD/YYYY</option>
+                            <option value="%Y-%m-%d">YYYY-MM-DD</option>
+                            <option value="%d-%m-%Y">DD-MM-YYYY</option>
+                            <option value="%A, %d de %B de %Y">Día, DD de Mes de YYYY</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Formato de Hora</label>
+                        <select id="time-format" onchange="updatePreview()">
+                            <option value="%H:%M">24 horas (14:30)</option>
+                            <option value="%I:%M %p">12 horas (02:30 PM)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="show-seconds" onchange="updatePreview()">
+                        <label for="show-seconds">⏱️ Mostrar segundos</label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="show-date" checked onchange="updatePreview()">
+                        <label for="show-date">📅 Mostrar fecha</label>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Zona Horaria</label>
+                        <select id="timezone" onchange="updatePreview()">
+                            <option value="America/Mexico_City">🌎 Ciudad de México</option>
+                            <option value="America/New_York">🌎 Nueva York</option>
+                            <option value="America/Los_Angeles">🌎 Los Ángeles</option>
+                            <option value="America/Bogota">🌎 Bogotá</option>
+                            <option value="America/Buenos_Aires">🌎 Buenos Aires</option>
+                            <option value="Europe/Madrid">🌎 Madrid</option>
+                            <option value="Europe/London">🌎 Londres</option>
+                            <option value="Europe/Paris">🌎 París</option>
+                            <option value="Asia/Tokyo">🌎 Tokio</option>
+                            <option value="Australia/Sydney">🌎 Sídney</option>
+                            <option value="UTC">🌐 UTC</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Tab: Fondos -->
+                <div id="tab-wallpaper" class="tab-content">
+                    <h2>🖼️ Fondos de Pantalla</h2>
+                    
+                    <div class="control-group">
+                        <label>Cargar imagen personalizada</label>
+                        <input type="file" id="wallpaper-file" accept="image/*" onchange="cargarImagenFondo(this)">
+                        <div class="help-text">Selecciona una imagen para usar como fondo de pantalla</div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Fondo de Pantalla</label>
+                        <select id="wallpaper-select" onchange="updatePreview()">
+                            <option value="default">🌄 Predeterminado</option>
+                            <option value="mountains">🏔️ Montañas</option>
+                            <option value="ocean">🌊 Océano</option>
+                            <option value="forest">🌲 Bosque</option>
+                            <option value="city">🏙️ Ciudad</option>
+                            <option value="space">🚀 Espacio</option>
+                            <option value="sunset">🌅 Atardecer</option>
+                            <option value="custom">🎨 Personalizado</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Color sólido</label>
+                        <div class="control-row">
+                            <input type="color" id="solid-color" value="#2c3e50" onchange="updatePreview()">
+                            <span style="color:#aaa;font-size:11px;">Selecciona un color</span>
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Modo de ajuste</label>
+                        <select id="fit-mode" onchange="updatePreview()">
+                            <option value="cover">🖼️ Cubrir</option>
+                            <option value="contain">📐 Contener</option>
+                            <option value="stretch">↕️ Estirar</option>
+                            <option value="center">⏺️ Centrar</option>
+                            <option value="repeat">🔁 Repetir</option>
+                        </select>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="random-wallpaper" onchange="updatePreview()">
+                        <label for="random-wallpaper">🎲 Cambiar aleatoriamente</label>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Intervalo de cambio (segundos):</label>
+                        <input type="number" id="change-interval" value="3600" min="60" step="60">
+                        <div class="help-text">Mínimo 60 segundos (1 minuto)</div>
+                    </div>
+                </div>
+                
+                <!-- Tab: Menú -->
+                <div id="tab-menu" class="tab-content">
+                    <h2>📋 Configuración del Menú</h2>
+                    
+                    <div class="control-group">
+                        <label>Tipo de Menú</label>
+                        <select id="menu-type" onchange="updatePreview()">
+                            <option value="classic">📋 Clásico</option>
+                            <option value="modern">✨ Moderno</option>
+                            <option value="grid">📊 Cuadrícula</option>
+                            <option value="simple">🔲 Simple</option>
+                        </select>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="show-favorites" checked onchange="updatePreview()">
+                        <label for="show-favorites">⭐ Mostrar favoritos</label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="show-recent" checked onchange="updatePreview()">
+                        <label for="show-recent">🕐 Mostrar recientes</label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="show-search" checked onchange="updatePreview()">
+                        <label for="show-search">🔍 Mostrar búsqueda</label>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Categorías del menú</label>
+                        <input type="text" id="menu-categories" value="Accesorios,Desarrollo,Gráficos,Internet,Juegos,Multimedia,Oficina,Sistema" 
+                               placeholder="Separar por comas">
+                        <div class="help-text">Ingresa las categorías separadas por comas</div>
+                    </div>
+                </div>
+                
+                <!-- Tab: Paneles -->
+                <div id="tab-panel" class="tab-content">
+                    <h2>📊 Configuración de Paneles</h2>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="show-panel" checked onchange="updatePreview()">
+                        <label for="show-panel">📊 Mostrar panel superior</label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="show-menu-button" checked onchange="updatePreview()">
+                        <label for="show-menu-button">📋 Mostrar botón de menú</label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="show-search-bar" checked onchange="updatePreview()">
+                        <label for="show-search-bar">🔍 Mostrar barra de búsqueda</label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="show-power-button" checked onchange="updatePreview()">
+                        <label for="show-power-button">🔌 Mostrar botón de apagado</label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="show-settings-button" checked onchange="updatePreview()">
+                        <label for="show-settings-button">⚙️ Mostrar botón de configuración</label>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Posición del panel</label>
+                        <select id="panel-position" onchange="updatePreview()">
+                            <option value="top">⬆️ Superior</option>
+                            <option value="bottom">⬇️ Inferior</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Transparencia del panel: <span class="value-display" id="panel-transparency-label">90</span>%</label>
+                        <input type="range" id="panel-transparency" min="0" max="100" value="90" 
+                               oninput="document.getElementById('panel-transparency-label').textContent=this.value; updatePreview()">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Altura del panel: <span class="value-display" id="panel-height-label">32</span>px</label>
+                        <input type="range" id="panel-height" min="24" max="50" value="32" 
+                               oninput="document.getElementById('panel-height-label').textContent=this.value; updatePreview()">
+                    </div>
+                </div>
+                
+                <!-- Tab: Iconos -->
+                <div id="tab-icons" class="tab-content">
+                    <h2>📁 Iconos del Escritorio</h2>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="show-icons" checked onchange="updatePreview()">
+                        <label for="show-icons">📁 Mostrar iconos en el escritorio</label>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Tamaño de iconos: <span class="value-display" id="icon-size-label">48</span>px</label>
+                        <input type="range" id="icon-size" min="24" max="96" value="48" 
+                               oninput="document.getElementById('icon-size-label').textContent=this.value; updatePreview()">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Organización</label>
+                        <select id="icon-arrangement" onchange="updatePreview()">
+                            <option value="grid">📊 Cuadrícula</option>
+                            <option value="list">📋 Lista</option>
+                            <option value="free">🔄 Libre</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Agregar icono personalizado</label>
+                        <div class="control-row">
+                            <input type="text" id="custom-icon-name" placeholder="Nombre" style="flex:1;">
+                            <input type="text" id="custom-icon-emoji" placeholder="Emoji" style="flex:0.5;max-width:50px;">
+                            <button onclick="agregarIconoPersonalizado()" class="btn-add" style="flex:0.5;margin:0;padding:6px;">➕</button>
+                        </div>
+                        <div class="help-text">Ejemplo: Nombre: "Proyectos", Emoji: "📁"</div>
+                    </div>
+                    
+                    <div class="app-list" id="custom-icons-list">
+                        <h3 style="color:#aaa;font-size:0.85rem;margin-bottom:8px;">Iconos personalizados</h3>
+                    </div>
+                </div>
+                
+                <!-- Tab: Efectos -->
+                <div id="tab-effects" class="tab-content">
+                    <h2>✨ Efectos Visuales</h2>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="animations" checked onchange="updatePreview()">
+                        <label for="animations">🎬 Habilitar animaciones</label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="window-shadows" checked onchange="updatePreview()">
+                        <label for="window-shadows">🌓 Sombra en ventanas</label>
+                    </div>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="rounded-corners" checked onchange="updatePreview()">
+                        <label for="rounded-corners">🔄 Bordes redondeados</label>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Radio de bordes: <span class="value-display" id="corner-radius-label">8</span>px</label>
+                        <input type="range" id="corner-radius" min="0" max="20" value="8" 
+                               oninput="document.getElementById('corner-radius-label').textContent=this.value; updatePreview()">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Opacidad de ventanas: <span class="value-display" id="window-opacity-label">100</span>%</label>
+                        <input type="range" id="window-opacity" min="50" max="100" value="100" 
+                               oninput="document.getElementById('window-opacity-label').textContent=this.value; updatePreview()">
+                    </div>
+                </div>
+                
+                <!-- Tab: Barra de Tareas -->
+                <div id="tab-taskbar" class="tab-content">
+                    <h2>📌 Barra de Tareas</h2>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="show-taskbar" onchange="updatePreview()">
+                        <label for="show-taskbar">📌 Mostrar barra de tareas</label>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Posición de la barra</label>
+                        <select id="taskbar-position" onchange="updatePreview()">
+                            <option value="bottom">⬇️ Abajo</option>
+                            <option value="top">⬆️ Arriba</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Transparencia: <span class="value-display" id="taskbar-transparency-label">80</span>%</label>
+                        <input type="range" id="taskbar-transparency" min="10" max="100" value="80" 
+                               oninput="document.getElementById('taskbar-transparency-label').textContent=this.value; updatePreview()">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Aplicaciones en la barra</label>
+                        <div id="taskbar-apps-list" style="max-height:80px;overflow-y:auto;">
+                        </div>
+                        <button class="btn-add" onclick="agregarATaskbar()">➕ Agregar app a la barra</button>
+                    </div>
+                </div>
+                
+                <button class="btn-generate" onclick="generarConfiguracion()">
+                    🚀 Generar Instalador
+                </button>
+            </div>
+            
+            <div class="preview-panel">
+                <h2>📺 Previsualización</h2>
+                <div id="desktop-preview">
+                    <!-- Panel Superior -->
+                    <div id="top-panel">
+                        <div class="panel-left">
+                            <div class="menu-button" id="menu-btn" onclick="toggleMenu()">
+                                📋 Aplicaciones
+                            </div>
+                            <div class="search-bar">
+                                <span class="search-icon">🔍</span>
+                                <input type="text" id="search-input" placeholder="Buscar..." onfocus="showSearchSuggestions()" onblur="hideSearchSuggestions()">
+                            </div>
+                        </div>
+                        <div class="panel-right">
+                            <span id="taskbar-status" style="font-size:10px;opacity:0.7;"></span>
+                            <button class="panel-btn settings-btn" id="settings-btn" onclick="toggleDesktopSettings()" title="Configuración del escritorio">
+                                ⚙️
+                            </button>
+                            <button class="panel-btn power-btn" id="power-btn" onclick="togglePowerMenu()" title="Apagar / Cerrar sesión">
+                                ⏻
+                            </button>
+                            <div class="clock" id="clock-display">12:00:00 PM</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Menú de apagado -->
+                    <div class="power-menu" id="power-menu">
+                        <div class="power-item" onclick="accionApagar('shutdown')">
+                            <span class="power-icon">⏻</span> Apagar sistema
+                        </div>
+                        <div class="power-item" onclick="accionApagar('restart')">
+                            <span class="power-icon">🔄</span> Reiniciar
+                        </div>
+                        <div class="power-item" onclick="accionApagar('logout')">
+                            <span class="power-icon">🚪</span> Cerrar sesión
+                        </div>
+                        <div class="power-item" onclick="accionApagar('suspend')">
+                            <span class="power-icon">💤</span> Suspender
+                        </div>
+                        <div class="power-item danger" onclick="accionApagar('lock')">
+                            <span class="power-icon">🔒</span> Bloquear pantalla
+                        </div>
+                        <div class="power-item" onclick="togglePowerMenu()" style="border-top:1px solid #0f3460;margin-top:4px;">
+                            <span class="power-icon">✕</span> Cancelar
+                        </div>
+                    </div>
+                    
+                    <!-- Panel de configuración - REDUCIDO -->
+                    <div class="desktop-settings-panel" id="desktop-settings">
+                        <div class="settings-header">
+                            <h3>⚙️ Configuración</h3>
+                            <button class="settings-close-btn" onclick="toggleDesktopSettings()">✕</button>
+                        </div>
+                        
+                        <div class="setting-section">
+                            <div class="section-title">🎨 Apariencia</div>
+                            
+                            <div class="setting-row">
+                                <span class="setting-label">Tema</span>
+                                <div class="setting-control">
+                                    <select id="settings-theme" onchange="aplicarConfiguracionEscritorio()">
+                                        <option value="dark">🌙 Oscuro</option>
+                                        <option value="light">☀️ Claro</option>
+                                        <option value="system">🖥️ Sistema</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <span class="setting-label">Color</span>
+                                <div class="setting-control">
+                                    <input type="color" id="settings-accent" value="#e94560" onchange="aplicarConfiguracionEscritorio()">
+                                </div>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <span class="setting-label">Escala</span>
+                                <div class="setting-control">
+                                    <input type="range" id="settings-scale" min="80" max="150" value="100" 
+                                           oninput="document.getElementById('scale-label').textContent=this.value+'%'; aplicarConfiguracionEscritorio()">
+                                    <span id="scale-label" style="color:#e94560;min-width:30px;font-size:10px;">100%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <span class="setting-label">Fuente</span>
+                                <div class="setting-control">
+                                    <select id="settings-font" onchange="aplicarConfiguracionEscritorio()">
+                                        <option value="Segoe UI">Segoe UI</option>
+                                        <option value="Ubuntu">Ubuntu</option>
+                                        <option value="Roboto">Roboto</option>
+                                        <option value="Inter">Inter</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <span class="setting-label">Tamaño</span>
+                                <div class="setting-control">
+                                    <input type="range" id="settings-font-size" min="10" max="16" value="12" 
+                                           oninput="document.getElementById('font-size-label').textContent=this.value+'px'; aplicarConfiguracionEscritorio()">
+                                    <span id="font-size-label" style="color:#e94560;min-width:26px;font-size:10px;">12px</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-section">
+                            <div class="section-title">🪟 Ventanas</div>
+                            
+                            <div class="setting-row">
+                                <span class="setting-label">Animaciones</span>
+                                <div class="setting-control">
+                                    <select id="settings-animations" onchange="aplicarConfiguracionEscritorio()">
+                                        <option value="full">🎬 Todas</option>
+                                        <option value="reduced">🔽 Reducidas</option>
+                                        <option value="none">⏹️ Ninguna</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <span class="setting-label">Sombras</span>
+                                <div class="setting-control">
+                                    <input type="checkbox" id="settings-shadows" checked onchange="aplicarConfiguracionEscritorio()">
+                                </div>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <span class="setting-label">Bordes</span>
+                                <div class="setting-control">
+                                    <input type="checkbox" id="settings-rounded" checked onchange="aplicarConfiguracionEscritorio()">
+                                </div>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <span class="setting-label">Radio</span>
+                                <div class="setting-control">
+                                    <input type="range" id="settings-corner" min="0" max="16" value="8" 
+                                           oninput="document.getElementById('corner-label').textContent=this.value+'px'; aplicarConfiguracionEscritorio()">
+                                    <span id="corner-label" style="color:#e94560;min-width:26px;font-size:10px;">8px</span>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <span class="setting-label">Opacidad</span>
+                                <div class="setting-control">
+                                    <input type="range" id="settings-opacity" min="70" max="100" value="100" 
+                                           oninput="document.getElementById('opacity-label').textContent=this.value+'%'; aplicarConfiguracionEscritorio()">
+                                    <span id="opacity-label" style="color:#e94560;min-width:30px;font-size:10px;">100%</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-section">
+                            <div class="section-title">🖥️ Dock</div>
+                            
+                            <div class="setting-row">
+                                <span class="setting-label">Auto-ocultar</span>
+                                <div class="setting-control">
+                                    <input type="checkbox" id="settings-dock-autohide" checked onchange="aplicarConfiguracionEscritorio()">
+                                </div>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <span class="setting-label">Indicadores</span>
+                                <div class="setting-control">
+                                    <input type="checkbox" id="settings-dock-indicators" checked onchange="aplicarConfiguracionEscritorio()">
+                                </div>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <span class="setting-label">Zoom</span>
+                                <div class="setting-control">
+                                    <input type="checkbox" id="settings-dock-zoom" checked onchange="aplicarConfiguracionEscritorio()">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-section">
+                            <div class="section-title">📁 Iconos</div>
+                            
+                            <div class="setting-row">
+                                <span class="setting-label">Estilo</span>
+                                <div class="setting-control">
+                                    <select id="settings-icons" onchange="aplicarConfiguracionEscritorio()">
+                                        <option value="default">📁 Predet.</option>
+                                        <option value="modern">✨ Modernos</option>
+                                        <option value="minimal">🔲 Minimal</option>
+                                        <option value="colorful">🌈 Coloridos</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <span class="setting-label">Tamaño</span>
+                                <div class="setting-control">
+                                    <input type="range" id="settings-icon-size" min="32" max="64" value="48" 
+                                           oninput="document.getElementById('icon-size-label-settings').textContent=this.value+'px'; aplicarConfiguracionEscritorio()">
+                                    <span id="icon-size-label-settings" style="color:#e94560;min-width:26px;font-size:10px;">48px</span>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <span class="setting-label">Etiquetas</span>
+                                <div class="setting-control">
+                                    <input type="checkbox" id="settings-icon-labels" checked onchange="aplicarConfiguracionEscritorio()">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-section">
+                            <div class="section-title">🖱️ Mouse</div>
+                            
+                            <div class="setting-row">
+                                <span class="setting-label">Velocidad</span>
+                                <div class="setting-control">
+                                    <input type="range" id="settings-cursor-speed" min="1" max="10" value="5" 
+                                           oninput="document.getElementById('cursor-speed-label').textContent=this.value; aplicarConfiguracionEscritorio()">
+                                    <span id="cursor-speed-label" style="color:#e94560;min-width:12px;font-size:10px;">5</span>
+                                </div>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <span class="setting-label">Tamaño</span>
+                                <div class="setting-control">
+                                    <select id="settings-cursor-size" onchange="aplicarConfiguracionEscritorio()">
+                                        <option value="small">Pequeño</option>
+                                        <option value="medium" selected>Mediano</option>
+                                        <option value="large">Grande</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-section">
+                            <div class="section-title">♿ Accesibilidad</div>
+                            
+                            <div class="setting-row">
+                                <span class="setting-label">Alto contraste</span>
+                                <div class="setting-control">
+                                    <input type="checkbox" id="settings-high-contrast" onchange="aplicarConfiguracionEscritorio()">
+                                </div>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <span class="setting-label">Texto grande</span>
+                                <div class="setting-control">
+                                    <input type="checkbox" id="settings-large-text" onchange="aplicarConfiguracionEscritorio()">
+                                </div>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <span class="setting-label">Reducir movimiento</span>
+                                <div class="setting-control">
+                                    <input type="checkbox" id="settings-reduce-motion" onchange="aplicarConfiguracionEscritorio()">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button class="settings-apply" onclick="toggleDesktopSettings()">✅ Aplicar</button>
+                    </div>
+                    
+                    <!-- Menú desplegable -->
+                    <div class="dropdown-menu" id="dropdown-menu">
+                        <div class="menu-category">Favoritos</div>
+                        <div class="menu-item" onclick="abrirApp('terminal')">
+                            <span class="item-icon">📁</span> Terminal
+                        </div>
+                        <div class="menu-item" onclick="abrirApp('firefox')">
+                            <span class="item-icon">🌐</span> Firefox
+                        </div>
+                        <div class="menu-item" onclick="abrirApp('gedit')">
+                            <span class="item-icon">✏️</span> Gedit
+                        </div>
+                        <div class="menu-divider"></div>
+                        <div class="menu-category">Categorías</div>
+                        <div class="menu-item" onclick="abrirApp('categoria')">
+                            <span class="item-icon">📂</span> Accesorios
+                        </div>
+                        <div class="menu-item" onclick="abrirApp('categoria')">
+                            <span class="item-icon">🌐</span> Internet
+                        </div>
+                        <div class="menu-item" onclick="abrirApp('categoria')">
+                            <span class="item-icon">🎮</span> Juegos
+                        </div>
+                        <div class="menu-divider"></div>
+                        <div class="menu-search">
+                            <input type="text" placeholder="🔍 Buscar aplicaciones..." id="menu-search-input" oninput="filtrarMenu(this.value)">
+                        </div>
+                        <div id="menu-search-results"></div>
+                    </div>
+                    
+                    <!-- Drop zone -->
+                    <div class="desktop-drop-zone" id="desktop-drop-zone"></div>
+                    
+                    <!-- Iconos del escritorio -->
+                    <div class="desktop-icons" id="desktop-icons">
+                        <div class="desktop-icon" draggable="true" data-icon="pc" onclick="abrirApp('files')">
+                            <span class="icon-delete" onclick="event.stopPropagation();eliminarIcono(this)">✕</span>
+                            <span class="icon-emoji">🖥️</span>
+                            <span class="icon-label">Mi PC</span>
+                        </div>
+                        <div class="desktop-icon" draggable="true" data-icon="trash" onclick="abrirApp('trash')">
+                            <span class="icon-delete" onclick="event.stopPropagation();eliminarIcono(this)">✕</span>
+                            <span class="icon-emoji">🗑️</span>
+                            <span class="icon-label">Papelera</span>
+                        </div>
+                        <div class="desktop-icon" draggable="true" data-icon="docs" onclick="abrirApp('libreoffice')">
+                            <span class="icon-delete" onclick="event.stopPropagation();eliminarIcono(this)">✕</span>
+                            <span class="icon-emoji">📁</span>
+                            <span class="icon-label">Documentos</span>
+                        </div>
+                        <div class="desktop-icon" draggable="true" data-icon="downloads" onclick="abrirApp('files')">
+                            <span class="icon-delete" onclick="event.stopPropagation();eliminarIcono(this)">✕</span>
+                            <span class="icon-emoji">📂</span>
+                            <span class="icon-label">Descargas</span>
+                        </div>
+                        <div class="desktop-icon" draggable="true" data-icon="music" onclick="abrirApp('spotify')">
+                            <span class="icon-delete" onclick="event.stopPropagation();eliminarIcono(this)">✕</span>
+                            <span class="icon-emoji">🎵</span>
+                            <span class="icon-label">Música</span>
+                        </div>
+                        <div class="desktop-icon" draggable="true" data-icon="images" onclick="abrirApp('gimp')">
+                            <span class="icon-delete" onclick="event.stopPropagation();eliminarIcono(this)">✕</span>
+                            <span class="icon-emoji">📷</span>
+                            <span class="icon-label">Imágenes</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Zona para mostrar dock al pasar mouse -->
+                    <div id="dock-show-zone"></div>
+                    
+                    <!-- Barra de tareas -->
+                    <div id="taskbar"></div>
+                    
+                    <!-- DOCK -->
+                    <div id="dock" class="bottom">
+                        <span class="dock-item active" data-app="terminal" title="Terminal" onclick="abrirApp('terminal')">
+                            📁
+                            <span class="dock-indicator"></span>
+                            <span class="dock-delete" onclick="event.stopPropagation();eliminarDelDock(this)">✕</span>
+                        </span>
+                        <span class="dock-item" data-app="firefox" title="Firefox" onclick="abrirApp('firefox')">
+                            🌐
+                            <span class="dock-indicator"></span>
+                            <span class="dock-delete" onclick="event.stopPropagation();eliminarDelDock(this)">✕</span>
+                        </span>
+                        <span class="dock-item" data-app="gedit" title="Gedit" onclick="abrirApp('gedit')">
+                            ✏️
+                            <span class="dock-indicator"></span>
+                            <span class="dock-delete" onclick="event.stopPropagation();eliminarDelDock(this)">✕</span>
+                        </span>
+                        <span class="dock-divider"></span>
+                        <span class="dock-item" data-app="settings" title="Configuración" onclick="abrirApp('settings')">
+                            ⚙️
+                            <span class="dock-indicator"></span>
+                            <span class="dock-delete" onclick="event.stopPropagation();eliminarDelDock(this)">✕</span>
+                        </span>
+                        <span class="dock-item" data-app="files" title="Archivos" onclick="abrirApp('files')">
+                            📂
+                            <span class="dock-indicator"></span>
+                            <span class="dock-delete" onclick="event.stopPropagation();eliminarDelDock(this)">✕</span>
+                        </span>
+                        <span class="dock-divider"></span>
+                        <span class="dock-item" data-app="spotify" title="Spotify" onclick="abrirApp('spotify')">
+                            🎵
+                            <span class="dock-indicator"></span>
+                            <span class="dock-delete" onclick="event.stopPropagation();eliminarDelDock(this)">✕</span>
+                        </span>
+                        <span class="dock-item" data-app="vlc" title="VLC" onclick="abrirApp('vlc')">
+                            🎬
+                            <span class="dock-indicator"></span>
+                            <span class="dock-delete" onclick="event.stopPropagation();eliminarDelDock(this)">✕</span>
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="status-bar">
+                    💡 <span>Interactivo:</span> Haz clic en iconos del escritorio o dock para abrir aplicaciones
+                    <br>
+                    <span id="version-info">v2.0</span> · <span id="arch-info">x86_64</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="notification"></div>
+    
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-icon">🎉</div>
+            <h3>📦 Configuración Generada</h3>
+            <p id="modal-message">Tu configuración de escritorio ha sido generada exitosamente</p>
+            <div class="modal-actions">
+                <button onclick="abrirArchivoGenerado()" class="btn-primary">📂 Abrir Carpeta</button>
+                <button onclick="cerrarModal()" class="btn-secondary">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="/eel.js"></script>
+    
+    <script>
+        // ============================================================
+        // VARIABLES GLOBALES
+        // ============================================================
+        let apps = ['terminal', 'firefox', 'gedit'];
+        let archivoGenerado = null;
+        let customIcons = [];
+        let taskbarApps = [];
+        let draggedElement = null;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+        let iconPositions = {};
+        let wallpaperDataUrl = null;
+        let ventanasAbiertas = [];
+        let windowZIndex = 25;
+        let dockOculto = false;
+        let isDraggingWindow = false;
+        let currentDragWindow = null;
+        let dragStartX = 0, dragStartY = 0;
+        let dragOrigX = 0, dragOrigY = 0;
+        let dragOrigWidth = 0, dragOrigHeight = 0;
+        let snapThreshold = 50;
+        let isDockHovered = false;
+        let dockHideTimeout = null;
+
+        const desktopIconApps = {
+            'pc': 'files',
+            'trash': 'trash',
+            'docs': 'libreoffice',
+            'downloads': 'files',
+            'music': 'spotify',
+            'images': 'gimp'
+        };
+
+        const appIcons = {
+            'terminal': '📁',
+            'firefox': '🌐',
+            'gedit': '✏️',
+            'nautilus': '📂',
+            'chrome': '🌐',
+            'vscode': '📝',
+            'spotify': '🎵',
+            'vlc': '🎬',
+            'discord': '💬',
+            'steam': '🎮',
+            'slack': '💼',
+            'zoom': '📹',
+            'thunderbird': '📧',
+            'libreoffice': '📄',
+            'gimp': '🎨',
+            'inkscape': '✏️',
+            'settings': '⚙️',
+            'files': '📂',
+            'trash': '🗑️'
+        };
+        
+        const appNames = {
+            'terminal': 'Terminal',
+            'firefox': 'Firefox',
+            'gedit': 'Gedit',
+            'nautilus': 'Nautilus',
+            'chrome': 'Chrome',
+            'vscode': 'VS Code',
+            'spotify': 'Spotify',
+            'vlc': 'VLC',
+            'discord': 'Discord',
+            'steam': 'Steam',
+            'slack': 'Slack',
+            'zoom': 'Zoom',
+            'thunderbird': 'Thunderbird',
+            'libreoffice': 'LibreOffice',
+            'gimp': 'GIMP',
+            'inkscape': 'Inkscape',
+            'settings': 'Configuración',
+            'files': 'Archivos',
+            'trash': 'Papelera'
+        };
+
+        const appContent = {
+            'terminal': 'bash: ~/usuario$ <span style="color:#2ecc71;">_</span>',
+            'firefox': '🌐 <b>Firefox</b><br>Navegador web abierto',
+            'gedit': '✏️ <b>Gedit</b><br>Editor de texto',
+            'nautilus': '📂 <b>Nautilus</b><br>Administrador de archivos',
+            'chrome': '🌐 <b>Chrome</b><br>Navegador web',
+            'vscode': '📝 <b>VS Code</b><br>Editor de código',
+            'spotify': '🎵 <b>Spotify</b><br>Reproduciendo música...',
+            'vlc': '🎬 <b>VLC</b><br>Reproductor multimedia',
+            'discord': '💬 <b>Discord</b><br>Conectado al servidor',
+            'steam': '🎮 <b>Steam</b><br>Biblioteca de juegos',
+            'slack': '💼 <b>Slack</b><br>Conectado al workspace',
+            'zoom': '📹 <b>Zoom</b><br>Listo para reuniones',
+            'thunderbird': '📧 <b>Thunderbird</b><br>Correo electrónico',
+            'libreoffice': '📄 <b>LibreOffice</b><br>Suite de oficina',
+            'gimp': '🎨 <b>GIMP</b><br>Editor de imágenes',
+            'inkscape': '✏️ <b>Inkscape</b><br>Editor vectorial',
+            'settings': '⚙️ <b>Configuración</b><br>Panel de control',
+            'files': '📂 <b>Archivos</b><br>Explorador de archivos',
+            'trash': '🗑️ <b>Papelera</b><br>Vacía la papelera'
+        };
+
+        // ============================================================
+        // FUNCIONES DE NAVEGACIÓN
+        // ============================================================
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('tab-' + tabName).classList.add('active');
+            document.querySelector(`.tab-btn[onclick="showTab('${tabName}')"]`).classList.add('active');
+        }
+
+        // ============================================================
+        // FUNCIONES DEL MENÚ
+        // ============================================================
+        function toggleMenu() {
+            const menu = document.getElementById('dropdown-menu');
+            menu.classList.toggle('show');
+            document.getElementById('menu-btn').classList.toggle('active');
+        }
+
+        function showSearchSuggestions() {
+            const input = document.getElementById('search-input');
+            if (input.value.length > 0) {
+                filtrarMenu(input.value);
+            }
+        }
+
+        function hideSearchSuggestions() {
+            setTimeout(() => {
+                document.getElementById('dropdown-menu').classList.remove('show');
+                document.getElementById('menu-btn').classList.remove('active');
+            }, 300);
+        }
+
+        function filtrarMenu(texto) {
+            const results = document.getElementById('menu-search-results');
+            const items = document.querySelectorAll('.menu-item');
+            
+            if (texto.length > 0) {
+                results.innerHTML = '';
+                let encontrados = 0;
+                items.forEach(item => {
+                    const text = item.textContent.toLowerCase();
+                    if (text.includes(texto.toLowerCase())) {
+                        const clone = item.cloneNode(true);
+                        results.appendChild(clone);
+                        encontrados++;
+                    }
+                });
+                if (encontrados === 0) {
+                    results.innerHTML = '<div class="menu-item" style="opacity:0.5;">No se encontraron resultados</div>';
+                }
+                results.style.display = 'block';
+            } else {
+                results.style.display = 'none';
+            }
+        }
+
+        // ============================================================
+        // FUNCIONES DE APAGADO
+        // ============================================================
+        function togglePowerMenu() {
+            const menu = document.getElementById('power-menu');
+            menu.classList.toggle('show');
+            document.getElementById('dropdown-menu').classList.remove('show');
+            document.getElementById('menu-btn').classList.remove('active');
+        }
+
+        function accionApagar(action) {
+            const acciones = {
+                'shutdown': '⏻ Apagando el sistema...',
+                'restart': '🔄 Reiniciando el sistema...',
+                'logout': '🚪 Cerrando sesión...',
+                'suspend': '💤 Suspendiendo el sistema...',
+                'lock': '🔒 Bloqueando pantalla...'
+            };
+            
+            showNotification(acciones[action] || 'Acción ejecutada', 'info');
+            document.getElementById('power-menu').classList.remove('show');
+            
+            if (action === 'shutdown' || action === 'restart') {
+                const preview = document.getElementById('desktop-preview');
+                preview.style.transition = 'opacity 1s';
+                preview.style.opacity = '0';
+                setTimeout(() => {
+                    preview.style.opacity = '1';
+                    if (action === 'shutdown') {
+                        showNotification('✅ Sistema apagado correctamente', 'success');
+                    } else {
+                        showNotification('✅ Sistema reiniciado correctamente', 'success');
+                    }
+                }, 1500);
+            }
+        }
+
+        // ============================================================
+        // FUNCIONES DE CONFIGURACIÓN DEL ESCRITORIO
+        // ============================================================
+        function toggleDesktopSettings() {
+            const panel = document.getElementById('desktop-settings');
+            panel.classList.toggle('show');
+            document.getElementById('power-menu').classList.remove('show');
+            document.getElementById('dropdown-menu').classList.remove('show');
+            document.getElementById('menu-btn').classList.remove('active');
+            
+            if (panel.classList.contains('show')) {
+                cargarConfiguracionesEnPanel();
+            }
+        }
+
+        function cargarConfiguracionesEnPanel() {
+            document.getElementById('settings-theme').value = document.getElementById('dock-theme').value || 'dark';
+            document.getElementById('settings-accent').value = '#e94560';
+            document.getElementById('settings-scale').value = 100;
+            document.getElementById('settings-font').value = 'Segoe UI';
+            document.getElementById('settings-font-size').value = 12;
+            document.getElementById('settings-animations').value = 'full';
+            document.getElementById('settings-shadows').checked = true;
+            document.getElementById('settings-rounded').checked = true;
+            document.getElementById('settings-corner').value = 8;
+            document.getElementById('settings-opacity').value = 100;
+            document.getElementById('settings-dock-autohide').checked = document.getElementById('auto-hide').checked;
+            document.getElementById('settings-dock-indicators').checked = true;
+            document.getElementById('settings-dock-zoom').checked = true;
+            document.getElementById('settings-icons').value = 'default';
+            document.getElementById('settings-icon-size').value = 48;
+            document.getElementById('settings-icon-labels').checked = true;
+            document.getElementById('settings-cursor-speed').value = 5;
+            document.getElementById('settings-cursor-size').value = 'medium';
+            document.getElementById('settings-tap-to-click').checked = false;
+            document.getElementById('settings-high-contrast').checked = false;
+            document.getElementById('settings-large-text').checked = false;
+            document.getElementById('settings-reduce-motion').checked = false;
+            
+            document.getElementById('scale-label').textContent = '100%';
+            document.getElementById('font-size-label').textContent = '12px';
+            document.getElementById('corner-label').textContent = '8px';
+            document.getElementById('opacity-label').textContent = '100%';
+            document.getElementById('icon-size-label-settings').textContent = '48px';
+            document.getElementById('cursor-speed-label').textContent = '5';
+        }
+
+        function aplicarConfiguracionEscritorio() {
+            const theme = document.getElementById('settings-theme').value;
+            const accent = document.getElementById('settings-accent').value;
+            const scale = document.getElementById('settings-scale').value / 100;
+            const font = document.getElementById('settings-font').value;
+            const fontSize = document.getElementById('settings-font-size').value;
+            const animations = document.getElementById('settings-animations').value;
+            const shadows = document.getElementById('settings-shadows').checked;
+            const rounded = document.getElementById('settings-rounded').checked;
+            const corner = document.getElementById('settings-corner').value;
+            const opacity = document.getElementById('settings-opacity').value / 100;
+            const dockAutohide = document.getElementById('settings-dock-autohide').checked;
+            const dockIndicators = document.getElementById('settings-dock-indicators').checked;
+            const dockZoom = document.getElementById('settings-dock-zoom').checked;
+            const iconStyle = document.getElementById('settings-icons').value;
+            const iconSize = document.getElementById('settings-icon-size').value;
+            const iconLabels = document.getElementById('settings-icon-labels').checked;
+            const cursorSpeed = document.getElementById('settings-cursor-speed').value;
+            const cursorSize = document.getElementById('settings-cursor-size').value;
+            const tapToClick = document.getElementById('settings-tap-to-click').checked;
+            const highContrast = document.getElementById('settings-high-contrast').checked;
+            const largeText = document.getElementById('settings-large-text').checked;
+            const reduceMotion = document.getElementById('settings-reduce-motion').checked;
+            
+            const preview = document.getElementById('desktop-preview');
+            const previewContainer = document.querySelector('.preview-panel');
+            
+            if (theme === 'dark') {
+                preview.style.backgroundColor = '#1a1a2e';
+            } else if (theme === 'light') {
+                preview.style.backgroundColor = '#f0f0f0';
+            }
+            
+            document.querySelectorAll('.tab-btn.active, .btn-generate, .settings-apply').forEach(el => {
+                el.style.background = accent;
+            });
+            
+            previewContainer.style.transform = `scale(${scale})`;
+            previewContainer.style.transformOrigin = 'center center';
+            
+            document.querySelectorAll('.window-title, .app-name, .app-status, .app-content, .clock, .menu-button, .panel-btn').forEach(el => {
+                el.style.fontFamily = font + ', sans-serif';
+            });
+            
+            const finalFontSize = largeText ? parseInt(fontSize) + 2 : parseInt(fontSize);
+            document.querySelectorAll('.window-title, .app-name, .app-status, .app-content, .clock, .menu-button, .panel-btn').forEach(el => {
+                el.style.fontSize = finalFontSize + 'px';
+            });
+            
+            if (animations === 'none' || reduceMotion) {
+                document.querySelectorAll('.simulated-window, .dropdown-menu, .power-menu, .desktop-settings-panel').forEach(el => {
+                    el.style.animation = 'none';
+                });
+            } else if (animations === 'reduced') {
+                document.querySelectorAll('.simulated-window').forEach(el => {
+                    el.style.animation = 'windowOpen 0.2s ease';
+                });
+            }
+            
+            document.querySelectorAll('.simulated-window').forEach(el => {
+                el.style.boxShadow = shadows ? '0 10px 40px rgba(0,0,0,0.6)' : 'none';
+            });
+            
+            document.querySelectorAll('.simulated-window, .preview-panel, .controls-panel, .desktop-settings-panel').forEach(el => {
+                if (rounded) {
+                    el.style.borderRadius = corner + 'px';
+                } else {
+                    el.style.borderRadius = '0';
+                }
+            });
+            
+            previewContainer.style.opacity = opacity;
+            document.getElementById('auto-hide').checked = dockAutohide;
+            
+            document.querySelectorAll('.dock-indicator').forEach(el => {
+                el.style.display = dockIndicators ? 'block' : 'none';
+            });
+            
+            const icons = document.querySelectorAll('.desktop-icon');
+            icons.forEach(icon => {
+                if (iconStyle === 'modern') {
+                    icon.style.background = 'rgba(255,255,255,0.15)';
+                    icon.style.borderRadius = '12px';
+                    icon.style.backdropFilter = 'blur(10px)';
+                } else if (iconStyle === 'minimal') {
+                    icon.style.background = 'transparent';
+                    icon.style.borderRadius = '0';
+                    icon.style.backdropFilter = 'none';
+                } else if (iconStyle === 'colorful') {
+                    icon.style.background = 'rgba(233, 69, 96, 0.2)';
+                    icon.style.borderRadius = '8px';
+                    icon.style.backdropFilter = 'blur(5px)';
+                } else {
+                    icon.style.background = 'rgba(255,255,255,0.08)';
+                    icon.style.borderRadius = '8px';
+                    icon.style.backdropFilter = 'blur(5px)';
+                }
+            });
+            
+            document.getElementById('icon-size').value = iconSize;
+            document.getElementById('icon-size-label').textContent = iconSize;
+            
+            document.querySelectorAll('.icon-label').forEach(el => {
+                el.style.display = iconLabels ? 'block' : 'none';
+            });
+            
+            if (highContrast) {
+                document.body.style.filter = 'contrast(1.5)';
+            } else {
+                document.body.style.filter = 'none';
+            }
+            
+            document.getElementById('desktop-preview').style.cursor = 
+                cursorSize === 'small' ? 'default' : 
+                cursorSize === 'large' ? 'pointer' : 'default';
+            
+            showNotification('✅ Configuración aplicada', 'success');
+            updatePreview();
+        }
+
+        // ============================================================
+        // FUNCIONES DEL DOCK
+        // ============================================================
+        function ocultarDock() {
+            const dock = document.getElementById('dock');
+            const autoHide = document.getElementById('auto-hide').checked;
+            const hideOnLaunch = document.getElementById('hide-on-app-launch').checked;
+            
+            if (autoHide && hideOnLaunch) {
+                dock.classList.add('hidden');
+                dockOculto = true;
+                actualizarBoundsVentanas();
+            }
+        }
+
+        function mostrarDock() {
+            const dock = document.getElementById('dock');
+            dock.classList.remove('hidden');
+            dockOculto = false;
+            actualizarBoundsVentanas();
+        }
+
+        // ============================================================
+        // OBTENER BOUNDS DEL PREVIEW
+        // ============================================================
+        function obtenerBoundsPreview() {
+            const preview = document.getElementById('desktop-preview');
+            const rect = preview.getBoundingClientRect();
+            const paddingTop = 32;
+            const dock = document.getElementById('dock');
+            const dockHeight = dockOculto ? 0 : 65;
+            const paddingBottom = dockHeight + 10;
+            const paddingSides = 5;
+            
+            return {
+                width: rect.width - paddingSides * 2,
+                height: rect.height - paddingTop - paddingBottom,
+                top: paddingTop,
+                left: paddingSides,
+                bottom: paddingBottom
+            };
+        }
+
+        function actualizarBoundsVentanas() {
+            const bounds = obtenerBoundsPreview();
+            document.querySelectorAll('.simulated-window[data-maximized="true"]').forEach(win => {
+                win.style.width = bounds.width + 'px';
+                win.style.height = bounds.height + 'px';
+                win.style.left = bounds.left + 'px';
+                win.style.top = bounds.top + 'px';
+            });
+            
+            document.querySelectorAll('.simulated-window[data-snap-mode="applied"]').forEach(win => {
+                const modo = win.dataset.snapModeOriginal || 'half-left';
+                aplicarSnapDefinitivo(win.id, modo);
+            });
+        }
+
+        // ============================================================
+        // FUNCIÓN PARA ABRIR APLICACIONES
+        // ============================================================
+        function abrirApp(appId) {
+            document.getElementById('dropdown-menu').classList.remove('show');
+            document.getElementById('menu-btn').classList.remove('active');
+            
+            ocultarDock();
+            
+            const nombre = appNames[appId] || appId;
+            const icono = appIcons[appId] || '📦';
+            const contenido = appContent[appId] || 'Aplicación abierta';
+            
+            const preview = document.getElementById('desktop-preview');
+            const bounds = obtenerBoundsPreview();
+            
+            const anchoInicial = Math.min(380, bounds.width * 0.4);
+            const altoInicial = Math.min(220, bounds.height * 0.35);
+            
+            const x = 30 + Math.random() * Math.max(0, bounds.width - anchoInicial - 60);
+            const y = 40 + Math.random() * Math.max(0, bounds.height - altoInicial - 80);
+            
+            const windowId = 'win_' + Date.now();
+            const zIndex = windowZIndex++;
+            
+            const windowDiv = document.createElement('div');
+            windowDiv.className = 'simulated-window';
+            windowDiv.id = windowId;
+            windowDiv.style.left = Math.max(5, Math.min(x, bounds.width - anchoInicial - 5)) + 'px';
+            windowDiv.style.top = Math.max(30, Math.min(y, bounds.height - altoInicial - 10)) + 'px';
+            windowDiv.style.width = anchoInicial + 'px';
+            windowDiv.style.height = altoInicial + 'px';
+            windowDiv.style.zIndex = zIndex;
+            windowDiv.dataset.appId = appId;
+            windowDiv.dataset.maximized = 'false';
+            
+            windowDiv.innerHTML = `
+                <div class="window-header" onmousedown="iniciarArrastreVentana(event, '${windowId}')">
+                    <span class="window-title">${icono} ${nombre}</span>
+                    <div class="window-controls">
+                        <button class="btn-minimize" onclick="minimizarVentana('${windowId}')">−</button>
+                        <button class="btn-maximize" onclick="maximizarVentana('${windowId}')">□</button>
+                        <button class="btn-close" onclick="cerrarVentana('${windowId}')">✕</button>
+                    </div>
+                </div>
+                <div class="window-body">
+                    <div class="app-icon">${icono}</div>
+                    <div class="app-name">${nombre}</div>
+                    <div class="app-status">🟢 Ejecutando...</div>
+                    <div class="app-content">${contenido}</div>
+                </div>
+            `;
+            
+            preview.appendChild(windowDiv);
+            ventanasAbiertas.push(windowId);
+            
+            actualizarTaskbarConVentanas();
+            actualizarDockIndicadores();
+            showNotification(`✅ ${nombre} abierto`, 'success');
+            
+            setTimeout(() => {
+                windowDiv.style.animation = 'none';
+            }, 400);
+        }
+
+        // ============================================================
+        // ACTUALIZAR INDICADORES DEL DOCK
+        // ============================================================
+        function actualizarDockIndicadores() {
+            document.querySelectorAll('.dock-item').forEach(item => {
+                const appId = item.dataset.app;
+                const estaAbierta = ventanasAbiertas.some(id => {
+                    const win = document.getElementById(id);
+                    if (!win) return false;
+                    return win.dataset.appId === appId;
+                });
+                item.classList.toggle('active', estaAbierta);
+            });
+        }
+
+        // ============================================================
+        // FUNCIONES DE CONTROL DE VENTANAS
+        // ============================================================
+        function cerrarVentana(windowId) {
+            const windowDiv = document.getElementById(windowId);
+            if (windowDiv) {
+                windowDiv.style.animation = 'windowClose 0.3s ease forwards';
+                setTimeout(() => {
+                    windowDiv.remove();
+                    ventanasAbiertas = ventanasAbiertas.filter(id => id !== windowId);
+                    actualizarTaskbarConVentanas();
+                    actualizarDockIndicadores();
+                }, 300);
+            }
+        }
+
+        function minimizarVentana(windowId) {
+            const windowDiv = document.getElementById(windowId);
+            if (windowDiv) {
+                if (windowDiv.style.display === 'none') {
+                    windowDiv.style.display = 'block';
+                    windowDiv.style.animation = 'windowOpen 0.3s ease';
+                } else {
+                    windowDiv.style.display = 'none';
+                }
+            }
+        }
+
+        function maximizarVentana(windowId) {
+            const windowDiv = document.getElementById(windowId);
+            if (!windowDiv) return;
+            
+            const bounds = obtenerBoundsPreview();
+            
+            if (windowDiv.dataset.maximized === 'true') {
+                const prevWidth = windowDiv.dataset.prevWidth || '380px';
+                const prevHeight = windowDiv.dataset.prevHeight || '220px';
+                const prevLeft = windowDiv.dataset.prevLeft || '30px';
+                const prevTop = windowDiv.dataset.prevTop || '40px';
+                
+                windowDiv.style.width = prevWidth;
+                windowDiv.style.height = prevHeight;
+                windowDiv.style.left = prevLeft;
+                windowDiv.style.top = prevTop;
+                windowDiv.style.borderRadius = '10px';
+                windowDiv.dataset.maximized = 'false';
+                windowDiv.style.zIndex = windowZIndex++;
+            } else {
+                windowDiv.dataset.prevWidth = windowDiv.style.width;
+                windowDiv.dataset.prevHeight = windowDiv.style.height;
+                windowDiv.dataset.prevLeft = windowDiv.style.left;
+                windowDiv.dataset.prevTop = windowDiv.style.top;
+                
+                windowDiv.style.width = bounds.width + 'px';
+                windowDiv.style.height = bounds.height + 'px';
+                windowDiv.style.left = bounds.left + 'px';
+                windowDiv.style.top = bounds.top + 'px';
+                windowDiv.style.borderRadius = '0px';
+                windowDiv.dataset.maximized = 'true';
+                windowDiv.style.zIndex = windowZIndex++;
+            }
+        }
+
+        function iniciarArrastreVentana(e, windowId) {
+            const windowDiv = document.getElementById(windowId);
+            if (!windowDiv) return;
+            
+            if (windowDiv.dataset.maximized === 'true') {
+                maximizarVentana(windowId);
+                setTimeout(() => {
+                    iniciarArrastreVentana(e, windowId);
+                }, 50);
+                return;
+            }
+            
+            windowDiv.style.zIndex = windowZIndex++;
+            isDraggingWindow = true;
+            currentDragWindow = windowId;
+            
+            const preview = document.getElementById('desktop-preview');
+            const bounds = obtenerBoundsPreview();
+            
+            const rect = windowDiv.getBoundingClientRect();
+            const previewRect = preview.getBoundingClientRect();
+            
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            dragOrigX = rect.left - previewRect.left;
+            dragOrigY = rect.top - previewRect.top;
+            dragOrigWidth = rect.width;
+            dragOrigHeight = rect.height;
+            
+            windowDiv.classList.add('snapping');
+            
+            function onMove(e) {
+                if (!isDraggingWindow || currentDragWindow !== windowId) return;
+                
+                const dx = e.clientX - dragStartX;
+                const dy = e.clientY - dragStartY;
+                
+                let newX = dragOrigX + dx;
+                let newY = dragOrigY + dy;
+                
+                newX = Math.max(bounds.left, Math.min(newX, bounds.width + bounds.left - dragOrigWidth));
+                newY = Math.max(bounds.top, Math.min(newY, bounds.height + bounds.top - dragOrigHeight));
+                
+                windowDiv.style.left = newX + 'px';
+                windowDiv.style.top = newY + 'px';
+                
+                const relX = newX - bounds.left;
+                const relY = newY - bounds.top;
+                const halfWidth = bounds.width / 2;
+                const halfHeight = bounds.height / 2;
+                
+                if (relX < snapThreshold) {
+                    aplicarSnap(windowId, 'half-left');
+                } else if (relX + dragOrigWidth > bounds.width - snapThreshold) {
+                    aplicarSnap(windowId, 'half-right');
+                } else if (relX < snapThreshold && relY < snapThreshold) {
+                    aplicarSnap(windowId, 'quarter-tl');
+                } else if (relX + dragOrigWidth > bounds.width - snapThreshold && relY < snapThreshold) {
+                    aplicarSnap(windowId, 'quarter-tr');
+                } else if (relX < snapThreshold && relY + dragOrigHeight > bounds.height - snapThreshold) {
+                    aplicarSnap(windowId, 'quarter-bl');
+                } else if (relX + dragOrigWidth > bounds.width - snapThreshold && relY + dragOrigHeight > bounds.height - snapThreshold) {
+                    aplicarSnap(windowId, 'quarter-br');
+                } else if (relX < snapThreshold * 0.5) {
+                    aplicarSnap(windowId, 'third-left');
+                } else if (relX + dragOrigWidth > bounds.width - snapThreshold * 0.5) {
+                    aplicarSnap(windowId, 'third-right');
+                } else if (relX > halfWidth - 30 && relX < halfWidth + 30 && relY > halfHeight - 30 && relY < halfHeight + 30) {
+                    aplicarSnap(windowId, 'center');
+                } else {
+                    if (windowDiv.dataset.snapMode) {
+                        windowDiv.dataset.snapMode = '';
+                        windowDiv.style.borderRadius = '10px';
+                    }
+                }
+            }
+            
+            function onUp() {
+                isDraggingWindow = false;
+                currentDragWindow = null;
+                windowDiv.classList.remove('snapping');
+                
+                if (windowDiv.dataset.snapMode) {
+                    aplicarSnapDefinitivo(windowId);
+                }
+                
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+            }
+            
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+        }
+
+        function aplicarSnap(windowId, modo) {
+            const windowDiv = document.getElementById(windowId);
+            if (!windowDiv) return;
+            
+            const bounds = obtenerBoundsPreview();
+            const margin = 2;
+            
+            windowDiv.dataset.snapMode = modo;
+            windowDiv.style.borderRadius = '0px';
+            
+            const layouts = {
+                'half-left': { 
+                    width: bounds.width / 2 - margin, 
+                    height: bounds.height - margin * 2,
+                    left: bounds.left + margin,
+                    top: bounds.top + margin
+                },
+                'half-right': { 
+                    width: bounds.width / 2 - margin, 
+                    height: bounds.height - margin * 2,
+                    left: bounds.left + bounds.width / 2 + margin,
+                    top: bounds.top + margin
+                },
+                'quarter-tl': { 
+                    width: bounds.width / 2 - margin, 
+                    height: bounds.height / 2 - margin,
+                    left: bounds.left + margin,
+                    top: bounds.top + margin
+                },
+                'quarter-tr': { 
+                    width: bounds.width / 2 - margin, 
+                    height: bounds.height / 2 - margin,
+                    left: bounds.left + bounds.width / 2 + margin,
+                    top: bounds.top + margin
+                },
+                'quarter-bl': { 
+                    width: bounds.width / 2 - margin, 
+                    height: bounds.height / 2 - margin,
+                    left: bounds.left + margin,
+                    top: bounds.top + bounds.height / 2 + margin
+                },
+                'quarter-br': { 
+                    width: bounds.width / 2 - margin, 
+                    height: bounds.height / 2 - margin,
+                    left: bounds.left + bounds.width / 2 + margin,
+                    top: bounds.top + bounds.height / 2 + margin
+                },
+                'third-left': { 
+                    width: bounds.width / 3 - margin, 
+                    height: bounds.height - margin * 2,
+                    left: bounds.left + margin,
+                    top: bounds.top + margin
+                },
+                'third-right': { 
+                    width: bounds.width / 3 - margin, 
+                    height: bounds.height - margin * 2,
+                    left: bounds.left + (bounds.width / 3) * 2 + margin,
+                    top: bounds.top + margin
+                },
+                'center': { 
+                    width: bounds.width / 3 - margin, 
+                    height: bounds.height / 2 - margin,
+                    left: bounds.left + bounds.width / 3 + margin,
+                    top: bounds.top + bounds.height / 4 + margin
+                }
+            };
+            
+            if (layouts[modo]) {
+                const layout = layouts[modo];
+                windowDiv.style.width = layout.width + 'px';
+                windowDiv.style.height = layout.height + 'px';
+                windowDiv.style.left = layout.left + 'px';
+                windowDiv.style.top = layout.top + 'px';
+            }
+        }
+
+        function aplicarSnapDefinitivo(windowId, modoForzado) {
+            const windowDiv = document.getElementById(windowId);
+            if (!windowDiv) return;
+            
+            const modo = modoForzado || windowDiv.dataset.snapMode;
+            if (!modo) return;
+            
+            windowDiv.dataset.snapModeOriginal = modo;
+            windowDiv.dataset.snapMode = 'applied';
+            
+            const bounds = obtenerBoundsPreview();
+            const margin = 2;
+            
+            const layouts = {
+                'half-left': { 
+                    width: bounds.width / 2 - margin, 
+                    height: bounds.height - margin * 2,
+                    left: bounds.left + margin,
+                    top: bounds.top + margin
+                },
+                'half-right': { 
+                    width: bounds.width / 2 - margin, 
+                    height: bounds.height - margin * 2,
+                    left: bounds.left + bounds.width / 2 + margin,
+                    top: bounds.top + margin
+                },
+                'quarter-tl': { 
+                    width: bounds.width / 2 - margin, 
+                    height: bounds.height / 2 - margin,
+                    left: bounds.left + margin,
+                    top: bounds.top + margin
+                },
+                'quarter-tr': { 
+                    width: bounds.width / 2 - margin, 
+                    height: bounds.height / 2 - margin,
+                    left: bounds.left + bounds.width / 2 + margin,
+                    top: bounds.top + margin
+                },
+                'quarter-bl': { 
+                    width: bounds.width / 2 - margin, 
+                    height: bounds.height / 2 - margin,
+                    left: bounds.left + margin,
+                    top: bounds.top + bounds.height / 2 + margin
+                },
+                'quarter-br': { 
+                    width: bounds.width / 2 - margin, 
+                    height: bounds.height / 2 - margin,
+                    left: bounds.left + bounds.width / 2 + margin,
+                    top: bounds.top + bounds.height / 2 + margin
+                },
+                'third-left': { 
+                    width: bounds.width / 3 - margin, 
+                    height: bounds.height - margin * 2,
+                    left: bounds.left + margin,
+                    top: bounds.top + margin
+                },
+                'third-right': { 
+                    width: bounds.width / 3 - margin, 
+                    height: bounds.height - margin * 2,
+                    left: bounds.left + (bounds.width / 3) * 2 + margin,
+                    top: bounds.top + margin
+                },
+                'center': { 
+                    width: bounds.width / 3 - margin, 
+                    height: bounds.height / 2 - margin,
+                    left: bounds.left + bounds.width / 3 + margin,
+                    top: bounds.top + bounds.height / 4 + margin
+                }
+            };
+            
+            if (layouts[modo]) {
+                const layout = layouts[modo];
+                windowDiv.style.width = layout.width + 'px';
+                windowDiv.style.height = layout.height + 'px';
+                windowDiv.style.left = layout.left + 'px';
+                windowDiv.style.top = layout.top + 'px';
+            }
+        }
+
+        function actualizarTaskbarConVentanas() {
+            const taskbar = document.getElementById('taskbar');
+            const taskbarItems = taskbar.querySelectorAll('.taskbar-item');
+            
+            taskbarItems.forEach(item => {
+                if (item.dataset.window) {
+                    item.remove();
+                }
+            });
+            
+            ventanasAbiertas.forEach(windowId => {
+                const windowDiv = document.getElementById(windowId);
+                if (!windowDiv) return;
+                
+                const title = windowDiv.querySelector('.window-title')?.textContent || 'App';
+                const icon = title.split(' ')[0] || '📦';
+                
+                const item = document.createElement('div');
+                item.className = 'taskbar-item active';
+                item.dataset.window = windowId;
+                item.innerHTML = `<span class="task-icon">${icon}</span> ${title.substring(1)}`;
+                item.onclick = function() {
+                    const win = document.getElementById(windowId);
+                    if (win) {
+                        if (win.style.display === 'none') {
+                            win.style.display = 'block';
+                            win.style.animation = 'windowOpen 0.3s ease';
+                        }
+                        win.style.zIndex = windowZIndex++;
+                    }
+                };
+                taskbar.appendChild(item);
+            });
+        }
+
+        // ============================================================
+        // FUNCIONES DE ICONOS (DRAG & DROP)
+        // ============================================================
+        function initDragAndDrop() {
+            document.querySelectorAll('.desktop-icon').forEach(icon => {
+                icon.addEventListener('dragstart', dragStart);
+                icon.addEventListener('dragend', dragEnd);
+            });
+
+            const dropZone = document.getElementById('desktop-drop-zone');
+            dropZone.addEventListener('dragover', dragOver);
+            dropZone.addEventListener('dragenter', dragEnter);
+            dropZone.addEventListener('dragleave', dragLeave);
+            dropZone.addEventListener('drop', drop);
+
+            document.querySelectorAll('.dock-item').forEach(item => {
+                item.addEventListener('dragstart', dragStart);
+                item.addEventListener('dragend', dragEnd);
+            });
+
+            document.querySelectorAll('.app-item').forEach(item => {
+                item.addEventListener('dragstart', dragStartApp);
+                item.addEventListener('dragend', dragEnd);
+            });
+            
+            const dockShowZone = document.getElementById('dock-show-zone');
+            dockShowZone.addEventListener('mouseenter', function() {
+                const autoHide = document.getElementById('auto-hide').checked;
+                if (autoHide && dockOculto) {
+                    mostrarDock();
+                }
+            });
+            
+            dockShowZone.addEventListener('mouseleave', function() {
+                const autoHide = document.getElementById('auto-hide').checked;
+                const hideOnLaunch = document.getElementById('hide-on-app-launch').checked;
+                if (autoHide && hideOnLaunch && !isDockHovered) {
+                    clearTimeout(dockHideTimeout);
+                    dockHideTimeout = setTimeout(() => {
+                        if (!isDockHovered) {
+                            ocultarDock();
+                        }
+                    }, 1000);
+                }
+            });
+            
+            const dock = document.getElementById('dock');
+            dock.addEventListener('mouseenter', function() {
+                isDockHovered = true;
+                clearTimeout(dockHideTimeout);
+                mostrarDock();
+            });
+            dock.addEventListener('mouseleave', function() {
+                isDockHovered = false;
+                const autoHide = document.getElementById('auto-hide').checked;
+                const hideOnLaunch = document.getElementById('hide-on-app-launch').checked;
+                if (autoHide && hideOnLaunch) {
+                    clearTimeout(dockHideTimeout);
+                    dockHideTimeout = setTimeout(() => {
+                        if (!isDockHovered) {
+                            ocultarDock();
+                        }
+                    }, 800);
+                }
+            });
+        }
+
+        function dragStart(e) {
+            draggedElement = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            
+            const isIcon = this.classList.contains('desktop-icon');
+            const isDock = this.classList.contains('dock-item');
+            
+            if (isIcon) {
+                e.dataTransfer.setData('text/plain', 'icon:' + this.dataset.icon);
+            } else if (isDock) {
+                e.dataTransfer.setData('text/plain', 'dock:' + this.dataset.app);
+            }
+            
+            const rect = this.getBoundingClientRect();
+            dragOffsetX = e.clientX - rect.left;
+            dragOffsetY = e.clientY - rect.top;
+        }
+
+        function dragStartApp(e) {
+            draggedElement = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', 'app:' + this.dataset.app);
+        }
+
+        function dragEnd(e) {
+            this.classList.remove('dragging');
+            draggedElement = null;
+        }
+
+        function dragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            this.classList.add('drag-over');
+        }
+
+        function dragEnter(e) {
+            e.preventDefault();
+            this.classList.add('drag-over');
+        }
+
+        function dragLeave(e) {
+            this.classList.remove('drag-over');
+        }
+
+        function drop(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            
+            const data = e.dataTransfer.getData('text/plain');
+            if (!data) return;
+            
+            const [type, id] = data.split(':');
+            
+            const dropZone = document.getElementById('desktop-drop-zone');
+            const rect = dropZone.getBoundingClientRect();
+            const x = e.clientX - rect.left - dragOffsetX;
+            const y = e.clientY - rect.top - dragOffsetY;
+            
+            if (type === 'icon') {
+                const icon = document.querySelector(`.desktop-icon[data-icon="${id}"]`);
+                if (icon) {
+                    icon.style.position = 'absolute';
+                    icon.style.left = Math.max(0, x) + 'px';
+                    icon.style.top = Math.max(0, y) + 'px';
+                    icon.style.transform = 'none';
+                    iconPositions[id] = { x: Math.max(0, x), y: Math.max(0, y) };
+                }
+            } else if (type === 'dock') {
+                agregarAlDock(id);
+            } else if (type === 'app') {
+                agregarAlDock(id);
+                const appItem = document.querySelector(`.app-item[data-app="${id}"]`);
+                if (appItem) appItem.remove();
+            }
+            
+            updatePreview();
+        }
+
+        function agregarAlDock(appId) {
+            const dock = document.getElementById('dock');
+            if (dock.querySelector(`.dock-item[data-app="${appId}"]`)) {
+                showNotification('⚠️ La aplicación ya está en el dock', 'error');
+                return;
+            }
+            
+            const span = document.createElement('span');
+            span.className = 'dock-item';
+            span.draggable = true;
+            span.dataset.app = appId;
+            span.title = appNames[appId] || appId;
+            span.innerHTML = `${appIcons[appId] || '📦'} <span class="dock-indicator"></span> <span class="dock-delete" onclick="event.stopPropagation();eliminarDelDock(this)">✕</span>`;
+            span.onclick = function() { abrirApp(appId); };
+            
+            span.addEventListener('dragstart', dragStart);
+            span.addEventListener('dragend', dragEnd);
+            
+            dock.appendChild(span);
+            
+            if (!apps.includes(appId)) {
+                apps.push(appId);
+                actualizarListaApps();
+            }
+            
+            showNotification(`✅ ${appNames[appId] || appId} agregado al dock`, 'success');
+            updatePreview();
+        }
+
+        function eliminarDelDock(element) {
+            const item = element.closest('.dock-item');
+            const appId = item.dataset.app;
+            item.remove();
+            
+            const dockItems = document.querySelectorAll('.dock-item');
+            let existe = false;
+            dockItems.forEach(el => {
+                if (el.dataset.app === appId) existe = true;
+            });
+            
+            if (!existe) {
+                const index = apps.indexOf(appId);
+                if (index > -1) apps.splice(index, 1);
+                actualizarListaApps();
+            }
+            
+            showNotification(`🗑️ ${appNames[appId] || appId} eliminado del dock`, 'info');
+            updatePreview();
+        }
+
+        function eliminarIcono(element) {
+            const icon = element.closest('.desktop-icon');
+            const iconId = icon.dataset.icon;
+            icon.remove();
+            delete iconPositions[iconId];
+            showNotification('🗑️ Icono eliminado', 'info');
+        }
+
+        function agregarIconoPersonalizado() {
+            const nombre = document.getElementById('custom-icon-name').value.trim();
+            const emoji = document.getElementById('custom-icon-emoji').value.trim() || '📦';
+            
+            if (!nombre) {
+                showNotification('⚠️ Ingresa un nombre para el icono', 'error');
+                return;
+            }
+            
+            const id = 'custom_' + Date.now();
+            customIcons.push({ id, nombre, emoji });
+            
+            const iconsContainer = document.getElementById('desktop-icons');
+            const div = document.createElement('div');
+            div.className = 'desktop-icon';
+            div.draggable = true;
+            div.dataset.icon = id;
+            div.onclick = function() { abrirApp('files'); };
+            div.innerHTML = `
+                <span class="icon-delete" onclick="event.stopPropagation();eliminarIcono(this)">✕</span>
+                <span class="icon-emoji">${emoji}</span>
+                <span class="icon-label">${nombre}</span>
+            `;
+            div.addEventListener('dragstart', dragStart);
+            div.addEventListener('dragend', dragEnd);
+            iconsContainer.appendChild(div);
+            
+            const list = document.getElementById('custom-icons-list');
+            const item = document.createElement('div');
+            item.className = 'app-item';
+            item.innerHTML = `
+                <span>${emoji} ${nombre}</span>
+                <button onclick="eliminarIconoPersonalizado('${id}')">✕</button>
+            `;
+            list.appendChild(item);
+            
+            document.getElementById('custom-icon-name').value = '';
+            document.getElementById('custom-icon-emoji').value = '';
+            
+            showNotification(`✅ Icono "${nombre}" agregado`, 'success');
+            updatePreview();
+        }
+
+        function eliminarIconoPersonalizado(id) {
+            const icon = document.querySelector(`.desktop-icon[data-icon="${id}"]`);
+            if (icon) icon.remove();
+            
+            customIcons = customIcons.filter(i => i.id !== id);
+            
+            const items = document.querySelectorAll('#custom-icons-list .app-item');
+            items.forEach(item => {
+                if (item.textContent.includes(id) || item.querySelector('button').onclick.toString().includes(id)) {
+                    item.remove();
+                }
+            });
+            
+            showNotification('🗑️ Icono personalizado eliminado', 'info');
+        }
+
+        // ============================================================
+        // FUNCIONES DE LA BARRA DE TAREAS
+        // ============================================================
+        function agregarATaskbar() {
+            const appId = prompt('📱 ID de la aplicación para la barra de tareas (ej: terminal, firefox):');
+            if (!appId) return;
+            
+            const cleanId = appId.trim().toLowerCase();
+            if (!taskbarApps.includes(cleanId)) {
+                taskbarApps.push(cleanId);
+                actualizarTaskbar();
+                showNotification(`✅ ${appNames[cleanId] || cleanId} agregado a la barra de tareas`, 'success');
+            } else {
+                showNotification('⚠️ La aplicación ya está en la barra de tareas', 'error');
+            }
+        }
+
+        function actualizarTaskbar() {
+            const taskbar = document.getElementById('taskbar');
+            const taskbarItems = taskbar.querySelectorAll('.taskbar-item');
+            taskbarItems.forEach(item => {
+                if (!item.dataset.window) {
+                    item.remove();
+                }
+            });
+            
+            taskbarApps.forEach(appId => {
+                const div = document.createElement('div');
+                div.className = 'taskbar-item';
+                div.innerHTML = `<span class="task-icon">${appIcons[appId] || '📦'}</span> ${appNames[appId] || appId}`;
+                div.onclick = () => abrirApp(appId);
+                taskbar.appendChild(div);
+            });
+        }
+
+        function actualizarListaApps() {
+            const container = document.getElementById('app-list-container');
+            container.innerHTML = '';
+            
+            apps.forEach(appId => {
+                const div = document.createElement('div');
+                div.className = 'app-item';
+                div.draggable = true;
+                div.dataset.app = appId;
+                div.innerHTML = `
+                    <span>${appIcons[appId] || '📦'} ${appNames[appId] || appId}</span>
+                    <button onclick="removeApp('${appId}')">✕</button>
+                `;
+                div.addEventListener('dragstart', dragStartApp);
+                div.addEventListener('dragend', dragEnd);
+                container.appendChild(div);
+            });
+        }
+
+        // ============================================================
+        // FUNCIONES DE FONDO DE PANTALLA
+        // ============================================================
+        function cargarImagenFondo(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                wallpaperDataUrl = e.target.result;
+                const preview = document.getElementById('desktop-preview');
+                preview.style.backgroundImage = `url(${wallpaperDataUrl})`;
+                preview.classList.add('wallpaper-loaded');
+                document.getElementById('wallpaper-select').value = 'custom';
+                showNotification('✅ Imagen cargada como fondo de pantalla', 'success');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // ============================================================
+        // FUNCIÓN PRINCIPAL DE PREVISUALIZACIÓN
+        // ============================================================
+        function updatePreview() {
+            const position = document.getElementById('dock-position').value;
+            const theme = document.getElementById('dock-theme').value;
+            const size = document.getElementById('dock-size').value;
+            const transparency = document.getElementById('transparency').value / 100;
+            const autoHide = document.getElementById('auto-hide').checked;
+            
+            const dock = document.getElementById('dock');
+            const preview = document.getElementById('desktop-preview');
+            
+            dock.className = position;
+            
+            if (theme === 'dark') {
+                dock.style.background = `rgba(0,0,0,${transparency * 0.8})`;
+                dock.style.color = '#fff';
+            } else if (theme === 'light') {
+                dock.style.background = `rgba(255,255,255,${transparency * 0.8})`;
+                dock.style.color = '#000';
+            } else {
+                dock.style.background = `rgba(255,255,255,${transparency * 0.3})`;
+                dock.style.color = '#fff';
+            }
+            
+            if (autoHide) {
+                const hideOnLaunch = document.getElementById('hide-on-app-launch').checked;
+                if (hideOnLaunch && dockOculto) {
+                    dock.classList.add('hidden');
+                } else {
+                    dock.classList.remove('hidden');
+                }
+                dock.style.opacity = '1';
+                dock.onmouseenter = function() { 
+                    isDockHovered = true;
+                    clearTimeout(dockHideTimeout);
+                    mostrarDock(); 
+                };
+                dock.onmouseleave = function() { 
+                    isDockHovered = false;
+                    if (hideOnLaunch) {
+                        clearTimeout(dockHideTimeout);
+                        dockHideTimeout = setTimeout(() => {
+                            if (!isDockHovered) {
+                                ocultarDock();
+                            }
+                        }, 800);
+                    }
+                };
+            } else {
+                dock.classList.remove('hidden');
+                dockOculto = false;
+                dock.style.opacity = '1';
+                dock.onmouseenter = null;
+                dock.onmouseleave = null;
+            }
+            
+            const items = dock.querySelectorAll('.dock-item');
+            items.forEach(item => {
+                item.style.fontSize = size + 'px';
+            });
+            
+            if (!wallpaperDataUrl) {
+                const wallpaper = document.getElementById('wallpaper-select').value;
+                const solidColor = document.getElementById('solid-color').value;
+                const fitMode = document.getElementById('fit-mode').value;
+                
+                const wallpapers = {
+                    'default': '#2c3e50',
+                    'mountains': '#5D6D7E',
+                    'ocean': '#1B4F72',
+                    'forest': '#1E8449',
+                    'city': '#2C3E50',
+                    'space': '#1C1C3D',
+                    'sunset': '#D35400',
+                    'custom': solidColor
+                };
+                
+                if (wallpaper === 'custom') {
+                    preview.style.background = solidColor;
+                } else {
+                    preview.style.background = wallpapers[wallpaper] || '#2c3e50';
+                }
+                
+                const fitModes = {
+                    'cover': 'cover',
+                    'contain': 'contain',
+                    'stretch': '100% 100%',
+                    'center': 'auto',
+                    'repeat': 'auto'
+                };
+                preview.style.backgroundSize = fitModes[fitMode] || 'cover';
+                preview.style.backgroundPosition = 'center';
+                preview.style.backgroundRepeat = fitMode === 'repeat' ? 'repeat' : 'no-repeat';
+                preview.style.backgroundImage = 'none';
+                preview.classList.remove('wallpaper-loaded');
+            }
+            
+            const showPanel = document.getElementById('show-panel').checked;
+            const showMenuBtn = document.getElementById('show-menu-button').checked;
+            const showSearchBar = document.getElementById('show-search-bar').checked;
+            const showPowerBtn = document.getElementById('show-power-button').checked;
+            const showSettingsBtn = document.getElementById('show-settings-button').checked;
+            const panelPosition = document.getElementById('panel-position').value;
+            const panelTransparency = document.getElementById('panel-transparency').value / 100;
+            const panelHeight = document.getElementById('panel-height').value;
+            
+            const panel = document.getElementById('top-panel');
+            if (showPanel) {
+                panel.style.display = 'flex';
+                panel.style.height = panelHeight + 'px';
+                panel.style.background = `rgba(0,0,0,${panelTransparency})`;
+                if (panelPosition === 'bottom') {
+                    panel.style.top = 'auto';
+                    panel.style.bottom = '0';
+                } else {
+                    panel.style.top = '0';
+                    panel.style.bottom = 'auto';
+                }
+            } else {
+                panel.style.display = 'none';
+            }
+            
+            const menuBtn = document.querySelector('.menu-button');
+            menuBtn.style.display = showMenuBtn ? 'inline-block' : 'none';
+            
+            const searchBar = document.querySelector('.search-bar');
+            searchBar.style.display = showSearchBar ? 'flex' : 'none';
+            
+            const powerBtn = document.getElementById('power-btn');
+            powerBtn.style.display = showPowerBtn ? 'inline-flex' : 'none';
+            
+            const settingsBtn = document.getElementById('settings-btn');
+            settingsBtn.style.display = showSettingsBtn ? 'inline-flex' : 'none';
+            
+            updateClock();
+            
+            const showIcons = document.getElementById('show-icons').checked;
+            const iconSize = document.getElementById('icon-size').value;
+            const iconArrangement = document.getElementById('icon-arrangement').value;
+            
+            const iconsContainer = document.getElementById('desktop-icons');
+            if (iconArrangement === 'grid') {
+                iconsContainer.style.display = showIcons ? 'grid' : 'none';
+                iconsContainer.style.gridTemplateColumns = `repeat(auto-fill, ${parseInt(iconSize) + 25}px)`;
+                iconsContainer.style.gap = '10px';
+                iconsContainer.style.position = 'absolute';
+                iconsContainer.style.top = '40px';
+                iconsContainer.style.left = '15px';
+            } else if (iconArrangement === 'list') {
+                iconsContainer.style.display = showIcons ? 'flex' : 'none';
+                iconsContainer.style.flexDirection = 'column';
+                iconsContainer.style.gap = '6px';
+                iconsContainer.style.position = 'absolute';
+                iconsContainer.style.top = '40px';
+                iconsContainer.style.left = '15px';
+            } else {
+                iconsContainer.style.display = showIcons ? 'flex' : 'none';
+                iconsContainer.style.flexWrap = 'wrap';
+                iconsContainer.style.gap = '10px';
+                iconsContainer.style.position = 'absolute';
+                iconsContainer.style.top = '40px';
+                iconsContainer.style.left = '15px';
+            }
+            
+            const iconElements = iconsContainer.querySelectorAll('.desktop-icon');
+            iconElements.forEach(el => {
+                const emoji = el.querySelector('.icon-emoji');
+                if (emoji) emoji.style.fontSize = (parseInt(iconSize) * 0.65) + 'px';
+                el.style.width = (parseInt(iconSize) + 25) + 'px';
+            });
+            
+            const roundedCorners = document.getElementById('rounded-corners').checked;
+            const cornerRadius = document.getElementById('corner-radius').value;
+            const windowOpacity = document.getElementById('window-opacity').value / 100;
+            
+            const previewContainer = document.querySelector('.preview-panel');
+            if (roundedCorners) {
+                previewContainer.style.borderRadius = cornerRadius + 'px';
+            } else {
+                previewContainer.style.borderRadius = '0';
+            }
+            previewContainer.style.opacity = windowOpacity;
+            
+            const showTaskbar = document.getElementById('show-taskbar').checked;
+            const taskbarTransparency = document.getElementById('taskbar-transparency').value / 100;
+            const taskbar = document.getElementById('taskbar');
+            
+            if (showTaskbar) {
+                taskbar.classList.add('show');
+                taskbar.style.background = `rgba(0,0,0,${taskbarTransparency})`;
+                const taskbarPos = document.getElementById('taskbar-position').value;
+                if (taskbarPos === 'top') {
+                    taskbar.style.bottom = 'auto';
+                    taskbar.style.top = '55px';
+                } else {
+                    taskbar.style.top = 'auto';
+                    taskbar.style.bottom = '70px';
+                }
+                actualizarTaskbarConVentanas();
+                actualizarTaskbar();
+            } else {
+                taskbar.classList.remove('show');
+            }
+            
+            document.getElementById('taskbar-status').textContent = 
+                taskbarApps.length > 0 ? `📌 ${taskbarApps.length} apps` : '';
+            
+            setTimeout(actualizarBoundsVentanas, 100);
+            actualizarDockIndicadores();
+        }
+
+        // ============================================================
+        // FUNCIONES DE RELOJ
+        // ============================================================
+        function updateClock() {
+            const format = document.getElementById('time-format').value;
+            const showSeconds = document.getElementById('show-seconds').checked;
+            const showDate = document.getElementById('show-date').checked;
+            const dateFormat = document.getElementById('date-format').value;
+            
+            const now = new Date();
+            let timeString = '';
+            let dateString = '';
+            
+            if (format === '%H:%M') {
+                timeString = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            } else {
+                timeString = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
+            }
+            
+            if (showSeconds) {
+                timeString += ':' + now.getSeconds().toString().padStart(2, '0');
+            }
+            
+            if (showDate) {
+                const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+                if (dateFormat.includes('A') || dateFormat.includes('B')) {
+                    options.weekday = 'long';
+                    options.month = 'long';
+                }
+                dateString = now.toLocaleDateString('es-ES', options);
+            }
+            
+            const clockDisplay = document.getElementById('clock-display');
+            if (showDate) {
+                clockDisplay.textContent = dateString + ' ' + timeString;
+            } else {
+                clockDisplay.textContent = timeString;
+            }
+        }
+
+        // ============================================================
+        // FUNCIONES DE APLICACIONES
+        // ============================================================
+        function removeApp(appId) {
+            const index = apps.indexOf(appId);
+            if (index > -1) {
+                apps.splice(index, 1);
+                const dockItem = document.querySelector(`.dock-item[data-app="${appId}"]`);
+                if (dockItem) dockItem.remove();
+                actualizarListaApps();
+                updatePreview();
+            }
+        }
+
+        function addApp() {
+            const newApp = prompt('📱 Nombre de la aplicación (ej: nautilus, chrome, vscode):\n\nAplicaciones disponibles:\n- terminal, firefox, gedit, nautilus, chrome, vscode\n- spotify, vlc, discord, steam, slack, zoom\n- thunderbird, libreoffice, gimp, inkscape');
+            if (newApp && newApp.trim() !== '') {
+                const appId = newApp.trim().toLowerCase().replace(/\s/g, '_');
+                if (!apps.includes(appId)) {
+                    apps.push(appId);
+                    agregarAlDock(appId);
+                    actualizarListaApps();
+                    showNotification(`✅ Aplicación "${appNames[appId] || newApp.trim()}" agregada`, 'success');
+                } else {
+                    showNotification('⚠️ La aplicación ya existe', 'error');
+                }
+            }
+        }
+
+        // ============================================================
+        // FUNCIONES DE GENERACIÓN
+        // ============================================================
+        function generarConfiguracion() {
+            const dockApps = [];
+            document.querySelectorAll('#dock .dock-item').forEach(item => {
+                const appId = item.dataset.app;
+                if (appId && appId !== 'settings' && appId !== 'files') {
+                    dockApps.push(appId);
+                }
+            });
+            
+            const finalApps = dockApps.length > 0 ? dockApps : apps;
+            
+            const data = {
+                dock_position: document.getElementById('dock-position').value,
+                theme: document.getElementById('dock-theme').value,
+                dock_size: parseInt(document.getElementById('dock-size').value),
+                transparency: parseInt(document.getElementById('transparency').value) / 100,
+                auto_hide: document.getElementById('auto-hide').checked,
+                hide_on_app_launch: document.getElementById('hide-on-app-launch').checked,
+                show_dock: true,
+                
+                date_format: document.getElementById('date-format').value,
+                time_format: document.getElementById('time-format').value,
+                show_seconds: document.getElementById('show-seconds').checked,
+                show_date: document.getElementById('show-date').checked,
+                timezone: document.getElementById('timezone').value,
+                
+                wallpaper: document.getElementById('wallpaper-select').value,
+                solid_color: document.getElementById('solid-color').value,
+                fit_mode: document.getElementById('fit-mode').value,
+                random_wallpaper: document.getElementById('random-wallpaper').checked,
+                change_interval: parseInt(document.getElementById('change-interval').value) || 3600,
+                wallpaper_image: wallpaperDataUrl,
+                
+                menu_type: document.getElementById('menu-type').value,
+                show_favorites: document.getElementById('show-favorites').checked,
+                show_recent: document.getElementById('show-recent').checked,
+                show_search: document.getElementById('show-search').checked,
+                menu_categories: document.getElementById('menu-categories').value.split(',').map(c => c.trim()),
+                
+                show_panel: document.getElementById('show-panel').checked,
+                show_menu_button: document.getElementById('show-menu-button').checked,
+                show_search_bar: document.getElementById('show-search-bar').checked,
+                show_power_button: document.getElementById('show-power-button').checked,
+                show_settings_button: document.getElementById('show-settings-button').checked,
+                panel_position: document.getElementById('panel-position').value,
+                panel_transparency: parseInt(document.getElementById('panel-transparency').value) / 100,
+                panel_height: parseInt(document.getElementById('panel-height').value),
+                
+                show_icons: document.getElementById('show-icons').checked,
+                icon_size: parseInt(document.getElementById('icon-size').value),
+                icon_arrangement: document.getElementById('icon-arrangement').value,
+                
+                animations: document.getElementById('animations').checked,
+                window_shadows: document.getElementById('window-shadows').checked,
+                rounded_corners: document.getElementById('rounded-corners').checked,
+                corner_radius: parseInt(document.getElementById('corner-radius').value),
+                window_opacity: parseInt(document.getElementById('window-opacity').value) / 100,
+                
+                show_taskbar: document.getElementById('show-taskbar').checked,
+                taskbar_position: document.getElementById('taskbar-position').value,
+                taskbar_transparency: parseInt(document.getElementById('taskbar-transparency').value) / 100,
+                taskbar_apps: taskbarApps,
+                
+                applications: finalApps.map(appId => {
+                    const name = appNames[appId] || appId.charAt(0).toUpperCase() + appId.slice(1);
+                    let command = appId;
+                    
+                    const commands = {
+                        'terminal': 'gnome-terminal',
+                        'firefox': 'firefox',
+                        'gedit': 'gedit',
+                        'nautilus': 'nautilus',
+                        'chrome': 'google-chrome',
+                        'vscode': 'code',
+                        'spotify': 'spotify',
+                        'vlc': 'vlc',
+                        'discord': 'discord',
+                        'steam': 'steam',
+                        'slack': 'slack',
+                        'zoom': 'zoom',
+                        'thunderbird': 'thunderbird',
+                        'libreoffice': 'libreoffice',
+                        'gimp': 'gimp',
+                        'inkscape': 'inkscape'
+                    };
+                    
+                    return {
+                        name: name,
+                        command: commands[appId] || appId,
+                        icon: appIcons[appId] || 'application-x-executable'
+                    };
+                }),
+                
+                favorite_apps: finalApps.slice(0, 5).map(appId => ({
+                    name: appNames[appId] || appId,
+                    command: appId
+                })),
+                
+                custom_icons: customIcons,
+                icon_positions: iconPositions
+            };
+            
+            const btn = document.querySelector('.btn-generate');
+            btn.disabled = true;
+            btn.textContent = '⏳ Generando...';
+            
+            eel.guardar_configuracion(data)(function(result) {
+                if (result.status === 'success') {
+                    archivoGenerado = result.file;
+                    showNotification('✅ ' + result.message, 'success');
+                    mostrarModal(result.message);
+                } else {
+                    showNotification('❌ ' + result.message, 'error');
+                }
+                
+                btn.disabled = false;
+                btn.textContent = '🚀 Generar Instalador';
+            });
+        }
+
+        // ============================================================
+        // FUNCIONES AUXILIARES
+        // ============================================================
+        function mostrarModal(mensaje) {
+            document.getElementById('modal-message').textContent = mensaje;
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        function cerrarModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        function abrirArchivoGenerado() {
+            if (archivoGenerado) {
+                eel.abrir_archivo(archivoGenerado)(function(result) {
+                    if (result.status === 'error') {
+                        showNotification(result.message, 'error');
+                    }
+                });
+                cerrarModal();
+            }
+        }
+
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = type === 'success' ? 'notification-success' : 
+                                      type === 'error' ? 'notification-error' : 'notification-info';
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+
+        // ============================================================
+        // INICIALIZACIÓN
+        // ============================================================
+        const styleClose = document.createElement('style');
+        styleClose.textContent = `
+            @keyframes windowClose {
+                from { opacity: 1; transform: scale(1); }
+                to { opacity: 0; transform: scale(0.9) translateY(10px); }
+            }
+        `;
+        document.head.appendChild(styleClose);
+
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                cerrarModal();
+            }
+        });
+
+        document.addEventListener('click', function(e) {
+            const menu = document.getElementById('dropdown-menu');
+            const menuBtn = document.getElementById('menu-btn');
+            if (!menu.contains(e.target) && !menuBtn.contains(e.target)) {
+                menu.classList.remove('show');
+                menuBtn.classList.remove('active');
+            }
+            
+            const powerMenu = document.getElementById('power-menu');
+            const powerBtn = document.getElementById('power-btn');
+            if (!powerMenu.contains(e.target) && !powerBtn.contains(e.target)) {
+                powerMenu.classList.remove('show');
+            }
+        });
+
+        window.addEventListener('resize', function() {
+            actualizarBoundsVentanas();
+        });
+
+        setTimeout(initDragAndDrop, 100);
+        setInterval(updateClock, 1000);
+
+        eel.obtener_version()(function(info) {
+            document.getElementById('version-info').textContent = 'Python ' + info.python;
+            document.getElementById('arch-info').textContent = info.arquitectura;
+        });
+
+        setTimeout(updatePreview, 200);
+        updatePreview();
+        
+        const style = document.createElement('style');
+        style.textContent = `
+            .desktop-icon.dragging {
+                opacity: 0.6;
+                transform: scale(1.1);
+                cursor: grabbing;
+                z-index: 100;
+                border-color: #e94560;
+                box-shadow: 0 5px 25px rgba(233, 69, 96, 0.3);
+            }
+            .desktop-drop-zone.drag-over {
+                border-color: #e94560;
+                background: rgba(233, 69, 96, 0.05);
+                pointer-events: auto;
+            }
+            .dock-item.dragging {
+                opacity: 0.5;
+                transform: scale(1.2);
+                cursor: grabbing;
+                z-index: 100;
+                background: rgba(233, 69, 96, 0.3);
+            }
+            .app-item.dragging {
+                opacity: 0.5;
+                transform: scale(1.05);
+                cursor: grabbing;
+            }
+            #dock {
+                scroll-behavior: smooth;
+            }
+            #dock.left, #dock.right {
+                overflow-y: auto !important;
+                overflow-x: hidden !important;
+            }
+            .simulated-window .window-controls button {
+                width: 14px;
+                height: 14px;
+                border-radius: 50%;
+                border: none;
+                cursor: pointer;
+                transition: all 0.3s;
+                font-size: 9px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0;
+                color: #fff;
+            }
+            .simulated-window .window-controls .btn-close {
+                background: #e94560;
+            }
+            .simulated-window .window-controls .btn-close:hover {
+                background: #c72a4a;
+                transform: scale(1.1);
+            }
+            .simulated-window .window-controls .btn-minimize {
+                background: #f39c12;
+            }
+            .simulated-window .window-controls .btn-minimize:hover {
+                background: #d68910;
+                transform: scale(1.1);
+            }
+            .simulated-window .window-controls .btn-maximize {
+                background: #2ecc71;
+            }
+            .simulated-window .window-controls .btn-maximize:hover {
+                background: #27ae60;
+                transform: scale(1.1);
+            }
+            .simulated-window.snapping {
+                transition: all 0.1s ease !important;
+            }
+            #dock-show-zone {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 30px;
+                z-index: 14;
+                pointer-events: auto;
+            }
+            #dock.hidden {
+                opacity: 0 !important;
+                transform: translateY(70px) !important;
+                pointer-events: none !important;
+                visibility: hidden !important;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.getElementById('power-menu').classList.remove('show');
+                document.getElementById('dropdown-menu').classList.remove('show');
+                document.getElementById('menu-btn').classList.remove('active');
+                document.getElementById('desktop-settings').classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>
